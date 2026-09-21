@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Market">
+<title>Market Structure Watchlist</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Kanit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="vh" href="#main">ข้ามไปเนื้อหาหลัก</a>
+<header class="top">
+  <button class="back iconbtn" id="backBtn" hidden aria-label="ย้อนกลับ">←</button>
+  <div class="titlewrap">
+    <h1 id="pageTitle">Market Structure</h1>
+    <div class="sub" id="pageSub"></div>
+  </div>
+  <button class="iconbtn" id="fsBtn" aria-label="ปรับขนาดตัวอักษร">Aa</button>
+  <button class="iconbtn" id="themeBtn" aria-label="สลับธีมมืด/สว่าง">☀️</button>
+</header>
+<main id="main"></main>
+<nav class="nav" role="tablist">
+  <button role="tab" id="tab-overview" aria-selected="true" data-tab="overview"><span class="ic">◎</span>ภาพรวม</button>
+  <button role="tab" id="tab-list" aria-selected="false" data-tab="list"><span class="ic">☰</span>รายการ</button>
+  <button role="tab" id="tab-daily" aria-selected="false" data-tab="daily"><span class="ic">◷</span>รายวัน</button>
+</nav>
+<div class="sheet" id="sheet" hidden><div class="pane" id="pane" role="dialog" aria-modal="true"></div></div>
+
+<script src="rules.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

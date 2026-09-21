@@ -1,0 +1,322 @@
+{
+ "groups": [
+  {
+   "id": "sector",
+   "label": "ภาคส่วน US",
+   "benchmark": "SPY",
+   "rrg": true,
+   "items": [
+    {
+     "t": "XLK",
+     "th": "เทคโนโลยี",
+     "en": "Technology",
+     "sh": "เทค",
+     "cat": "equity"
+    },
+    {
+     "t": "XLC",
+     "th": "สื่อสาร",
+     "en": "Communication",
+     "sh": "สื่อสาร",
+     "cat": "equity"
+    },
+    {
+     "t": "XLY",
+     "th": "สินค้าฟุ่มเฟือย",
+     "en": "Consumer Disc.",
+     "sh": "ฟุ่มเฟือย",
+     "cat": "equity"
+    },
+    {
+     "t": "XLF",
+     "th": "การเงิน",
+     "en": "Financials",
+     "sh": "การเงิน",
+     "cat": "equity"
+    },
+    {
+     "t": "XLI",
+     "th": "อุตสาหกรรม",
+     "en": "Industrials",
+     "sh": "อุตฯ",
+     "cat": "equity"
+    },
+    {
+     "t": "XLV",
+     "th": "สุขภาพ",
+     "en": "Health Care",
+     "sh": "สุขภาพ",
+     "cat": "equity"
+    },
+    {
+     "t": "XLE",
+     "th": "พลังงาน",
+     "en": "Energy",
+     "sh": "พลังงาน",
+     "cat": "equity"
+    },
+    {
+     "t": "XLB",
+     "th": "วัสดุ",
+     "en": "Materials",
+     "sh": "วัสดุ",
+     "cat": "equity"
+    },
+    {
+     "t": "XLP",
+     "th": "สินค้าจำเป็น",
+     "en": "Consumer Staples",
+     "sh": "จำเป็น",
+     "cat": "equity"
+    },
+    {
+     "t": "XLU",
+     "th": "สาธารณูปโภค",
+     "en": "Utilities",
+     "sh": "ยูทิลิตี้",
+     "cat": "equity"
+    },
+    {
+     "t": "XLRE",
+     "th": "อสังหาฯ",
+     "en": "Real Estate",
+     "sh": "อสังหาฯ",
+     "cat": "equity"
+    }
+   ]
+  },
+  {
+   "id": "country",
+   "label": "ประเทศ",
+   "benchmark": "ACWI",
+   "rrg": true,
+   "items": [
+    {
+     "t": "SPY",
+     "th": "สหรัฐฯ",
+     "en": "US",
+     "sh": "สหรัฐฯ",
+     "cat": "equity"
+    },
+    {
+     "t": "EWJ",
+     "th": "ญี่ปุ่น",
+     "en": "Japan",
+     "sh": "ญี่ปุ่น",
+     "cat": "equity"
+    },
+    {
+     "t": "MCHI",
+     "th": "จีน",
+     "en": "China",
+     "sh": "จีน",
+     "cat": "equity"
+    },
+    {
+     "t": "INDA",
+     "th": "อินเดีย",
+     "en": "India",
+     "sh": "อินเดีย",
+     "cat": "equity"
+    },
+    {
+     "t": "EWT",
+     "th": "ไต้หวัน",
+     "en": "Taiwan",
+     "sh": "ไต้หวัน",
+     "cat": "equity"
+    },
+    {
+     "t": "EWY",
+     "th": "เกาหลีใต้",
+     "en": "Korea",
+     "sh": "เกาหลี",
+     "cat": "equity"
+    },
+    {
+     "t": "VNM",
+     "th": "เวียดนาม",
+     "en": "Vietnam",
+     "sh": "เวียดนาม",
+     "cat": "equity"
+    },
+    {
+     "t": "THD",
+     "th": "ไทย",
+     "en": "Thailand",
+     "sh": "ไทย",
+     "cat": "equity"
+    },
+    {
+     "t": "EWG",
+     "th": "เยอรมนี",
+     "en": "Germany",
+     "sh": "เยอรมนี",
+     "cat": "equity"
+    },
+    {
+     "t": "EWU",
+     "th": "อังกฤษ",
+     "en": "UK",
+     "sh": "อังกฤษ",
+     "cat": "equity"
+    },
+    {
+     "t": "EWZ",
+     "th": "บราซิล",
+     "en": "Brazil",
+     "sh": "บราซิล",
+     "cat": "equity"
+    },
+    {
+     "t": "EEM",
+     "th": "ตลาดเกิดใหม่",
+     "en": "Emerging Mkts",
+     "sh": "EM",
+     "cat": "equity"
+    }
+   ]
+  },
+  {
+   "id": "asset",
+   "label": "สินทรัพย์",
+   "rrg": false,
+   "items": [
+    {
+     "t": "SPY",
+     "th": "หุ้นสหรัฐฯ S&P 500",
+     "en": "S&P 500",
+     "cat": "equity"
+    },
+    {
+     "t": "QQQ",
+     "th": "Nasdaq 100",
+     "en": "Nasdaq 100",
+     "cat": "equity"
+    },
+    {
+     "t": "IWM",
+     "th": "หุ้นเล็ก US",
+     "en": "Russell 2000",
+     "cat": "equity"
+    },
+    {
+     "t": "ACWI",
+     "th": "หุ้นโลก",
+     "en": "World equity",
+     "cat": "equity"
+    },
+    {
+     "t": "TLT",
+     "th": "พันธบัตร US ยาว",
+     "en": "US Treasury 20Y+",
+     "cat": "bond"
+    },
+    {
+     "t": "GC=F",
+     "s": "GOLD",
+     "th": "ทองคำ",
+     "en": "Gold",
+     "cat": "commodity"
+    },
+    {
+     "t": "SI=F",
+     "s": "SILVER",
+     "th": "เงิน",
+     "en": "Silver",
+     "cat": "commodity"
+    },
+    {
+     "t": "HG=F",
+     "s": "COPPER",
+     "th": "ทองแดง",
+     "en": "Copper",
+     "cat": "commodity"
+    },
+    {
+     "t": "CL=F",
+     "s": "OIL",
+     "th": "น้ำมันดิบ",
+     "en": "WTI Crude",
+     "cat": "commodity"
+    },
+    {
+     "t": "BTC-USD",
+     "s": "BTC",
+     "th": "บิตคอยน์",
+     "en": "Bitcoin",
+     "cat": "crypto"
+    },
+    {
+     "t": "DX-Y.NYB",
+     "s": "DXY",
+     "th": "ดัชนีดอลลาร์",
+     "en": "US Dollar Index",
+     "cat": "dxy"
+    }
+   ]
+  }
+ ],
+ "daily": [
+  {
+   "t": "GC=F",
+   "s": "GOLD",
+   "th": "ทองคำ",
+   "en": "Gold",
+   "cat": "commodity"
+  },
+  {
+   "t": "BTC-USD",
+   "s": "BTC",
+   "th": "บิตคอยน์",
+   "en": "Bitcoin",
+   "cat": "crypto"
+  },
+  {
+   "t": "IVV",
+   "th": "S&P 500 ETF",
+   "en": "iShares Core S&P 500",
+   "cat": "equity"
+  },
+  {
+   "t": "QQQM",
+   "th": "Nasdaq 100 ETF",
+   "en": "Invesco Nasdaq 100",
+   "cat": "equity"
+  },
+  {
+   "t": "ARKK",
+   "th": "ARK Innovation",
+   "en": "ARK Innovation",
+   "cat": "equity"
+  },
+  {
+   "t": "ARKW",
+   "th": "ARK Next Gen Internet",
+   "en": "ARK Internet",
+   "cat": "equity"
+  },
+  {
+   "t": "ARKF",
+   "th": "ARK Fintech",
+   "en": "ARK Fintech",
+   "cat": "equity"
+  },
+  {
+   "t": "DJP",
+   "th": "สินค้าโภคภัณฑ์",
+   "en": "Bloomberg Commodity ETN",
+   "cat": "commodity"
+  }
+ ],
+ "regime": {
+  "includeCats": [
+   "equity",
+   "commodity",
+   "crypto"
+  ],
+  "riskOnPct": 60,
+  "riskOffPct": 40,
+  "benchmarkForRegime": "SPY"
+ }
+}

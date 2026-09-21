@@ -1,0 +1,17 @@
+{
+  "name": "Market Structure Watchlist",
+  "short_name": "Market",
+  "description": "ภาพรวมโครงสร้างตลาด + รายวัน (sector rotation, ประเทศ, สินทรัพย์) พร้อม Risk-On/Off",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "lang": "th",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

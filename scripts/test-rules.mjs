@@ -93,5 +93,13 @@ eq(lv4.rr, 3, "R:R หลักคำนวณจาก tp1");
 eq(lv4.rr2, 6, "R:R2 คำนวณจาก tp2 = (160-100)/(100-90) = 6");
 eq(Math.round(lv4.dTP2 * 10) / 10, 60, "ห่าง TP2 คำนวณถูก");
 
+// ---- accumSignal (สะสมระยะยาว: MA50/100/200) ----
+eq(Rules.accumSignal({vs200: -3, vs100: -1, vs50: 0.5}).key, "pause", "หลุด 200D -> หยุดสะสมชั่วคราว (ชนะทุกเงื่อนไข)");
+eq(Rules.accumSignal({vs200: 5, vs100: 1.5, vs50: 8}).key, "tier2", "แตะเส้น 100D ภายใน ±2% -> ไม้ใหญ่");
+eq(Rules.accumSignal({vs200: 5, vs100: 6, vs50: -1.8}).key, "tier1", "ไม่แตะ 100D แต่แตะ 50D -> ไม้ปกติ");
+eq(Rules.accumSignal({vs200: 20, vs100: 15, vs50: 10}).key, "none", "เทรนด์ปกติ ไม่แตะเส้นไหนเลย -> รอจังหวะ");
+eq(Rules.accumSignal({vs200: null}).key, "unknown", "ไม่มีข้อมูล vs200 -> unknown");
+eq(Rules.accumSignal({vs200: -0.1, vs100: 0.1, vs50: 0.1}).key, "pause", "หลุด 200D เพียงเล็กน้อยก็ยังหยุดสะสม (ไม่ตีความว่าแตะ)");
+
 console.log(`\n${pass} ผ่าน, ${fail} ไม่ผ่าน`);
 process.exit(fail ? 1 : 0);

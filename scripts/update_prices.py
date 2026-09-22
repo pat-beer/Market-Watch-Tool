@@ -43,6 +43,7 @@ def collect_tickers(wl):
             tickers.add(g["benchmark"])
         tickers.update(i["t"] for i in g["items"])
     tickers.update(i["t"] for i in wl.get("daily", []))
+    tickers.update(i["t"] for i in wl.get("accumulate", []))
     return sorted(tickers)
 
 
@@ -122,6 +123,7 @@ def build_symbol(df, bench_close=None, want_spark=False, tail=5):
         return (last / this_year.iloc[0] - 1) * 100 if len(this_year) > 1 else None
 
     ma50 = c.rolling(50).mean().iloc[-1]
+    ma100 = c.rolling(100).mean().iloc[-1] if len(c) >= 100 else np.nan
     ma200 = c.rolling(200).mean().iloc[-1] if len(c) >= 200 else np.nan
     has_hl = {"High", "Low"} <= set(df.columns)
     rec = {
@@ -135,6 +137,7 @@ def build_symbol(df, bench_close=None, want_spark=False, tail=5):
         "ytd": rnd(ytd()),
         "rsi": rnd(rsi_wilder(c).iloc[-1], 1),
         "vs50": rnd((last / ma50 - 1) * 100),
+        "vs100": rnd((last / ma100 - 1) * 100) if not np.isnan(ma100) else None,
         "vs200": rnd((last / ma200 - 1) * 100) if not np.isnan(ma200) else None,
         "atr": rnd(atr_wilder(df).iloc[-1], 4) if has_hl else None,
         "asof": df.index[-1].strftime("%Y-%m-%d"),
@@ -159,12 +162,14 @@ def build_series(df):
         return None
     c = df["Close"]
     ma50 = c.rolling(50).mean()
+    ma100 = c.rolling(100).mean()
     ma200 = c.rolling(200).mean()
     tail = df.index[-SERIES_DAYS:]
     return {
         "d": [d.strftime("%Y-%m-%d") for d in tail],
         "c": [rnd(v, 4) for v in c.loc[tail].tolist()],
         "m50": [rnd(v, 4) for v in ma50.loc[tail].tolist()],
+        "m100": [rnd(v, 4) for v in ma100.loc[tail].tolist()],
         "m200": [rnd(v, 4) for v in ma200.loc[tail].tolist()],
     }
 
@@ -276,11 +281,12 @@ def main():
             for it in g["items"]:
                 bench_of.setdefault(it["t"], set()).add(g["benchmark"])
     daily_set = {i["t"] for i in wl.get("daily", [])}
+    accum_set = {i["t"] for i in wl.get("accumulate", [])}
 
     symbols = {}
     series = {}
     for t, df in frames.items():
-        base = build_symbol(df, None, want_spark=t in daily_set)
+        base = build_symbol(df, None, want_spark=(t in daily_set or t in accum_set))
         if base:
             symbols[t] = base
         # RRG เก็บแยกตามกลุ่ม: key เป็น benchmark เพื่อให้ SPY เป็นทั้ง benchmark และสมาชิกกลุ่มประเทศได้

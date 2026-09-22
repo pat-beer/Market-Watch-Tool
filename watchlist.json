@@ -330,5 +330,22 @@
   "riskOnPct": 60,
   "riskOffPct": 40,
   "benchmarkForRegime": "SPY"
- }
+ },
+ "accumulate": [
+  {
+   "t": "SPY",
+   "th": "หุ้นสหรัฐฯ S&P 500",
+   "en": "S&P 500"
+  },
+  {
+   "t": "QQQM",
+   "th": "Nasdaq 100",
+   "en": "Nasdaq 100"
+  },
+  {
+   "t": "ACWI",
+   "th": "หุ้นโลก",
+   "en": "All-Country World"
+  }
+ ]
 }

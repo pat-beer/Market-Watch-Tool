@@ -298,6 +298,39 @@ function dailyHTML() {
   o += '<p class="foot">สถานะเตือนคำนวณจากราคา ณ รอบอัปเดตล่าสุด (ไม่ใช่เรียลไทม์) · ราคาเช้า/เย็นอัปเดตอัตโนมัติ ส่วน SL/TP มาจากการวิเคราะห์บน desktop</p>';
   return o;
 }
+/* ================= ACCUMULATE (สะสมระยะยาว: MA50/100/200) ================= */
+function accumHTML() {
+  var list = S.wl.accumulate || [];
+  var cards = list.map(function (it, idx) {
+    var s = S.px.symbols[it.t]; if (!s) return null;
+    return {it: it, s: s, idx: idx, a: Rules.accumSignal(s)};
+  }).filter(Boolean);
+  cards.sort(function (a, b) { return a.a.rank - b.a.rank || a.idx - b.idx; });
+  var alerts = cards.filter(function (c) { return c.a.key === "pause" || c.a.key === "tier1" || c.a.key === "tier2"; }).length;
+  var o = '<div class="chead"><h3>สะสมระยะยาว<span class="sub">' + cards.length + " ตัว" + (alerts ? " · สัญญาณ " + alerts : "") + '</span></h3></div>';
+  if (!list.length) {
+    o += '<p class="empty">ยังไม่มีรายการ — เพิ่มตัวที่จะสะสมได้ที่ watchlist.json → "accumulate"</p>';
+  }
+  cards.forEach(function (c) {
+    var it = c.it, s = c.s, a = c.a;
+    var rows = [
+      {lbl: "50D", v: s.vs50, hit: a.key === "tier1"},
+      {lbl: "100D", v: s.vs100, hit: a.key === "tier2"},
+      {lbl: "200D", v: s.vs200, hit: a.key === "pause"},
+    ];
+    o += '<article class="dcard ' + (a.key === "pause" ? "bad" : a.key === "tier1" || a.key === "tier2" ? "warn" : "") + '">' +
+      '<div class="dtop"><div class="id"><b>' + esc(it.s || it.t) + '</b><span>' + esc(it.th) + '</span></div>' +
+      '<div class="pr"><b class="num">' + price(s.last) + '</b><span class="num ' + (s.chg >= 0 ? "up" : "down") + '">' + pct(s.chg, 2) + "</span></div></div>";
+    if (a.key !== "none" && a.key !== "unknown") o += '<span class="alert ' + (a.key === "pause" ? "bad" : "warn") + '">' + a.th + "</span>";
+    o += spark(s.spark);
+    o += '<div class="malines">' + rows.map(function (r) {
+      return '<div class="maline' + (r.hit ? " hit" : "") + '"><span>' + r.lbl + "</span><b class=\"num\">" + (r.v == null ? "–" : pct(r.v)) + "</b></div>";
+    }).join("") + "</div>";
+    o += '<button class="row" style="border:0;padding:.4rem 0 0;color:var(--gold);font-weight:600;font-size:.82rem" data-open="' + esc(it.t) + '">ดูกราฟและรายละเอียด →</button></article>';
+  });
+  o += '<p class="foot">แผนคร่าวๆ: เทรนด์ยังไม่เสีย (ราคา &gt; 200D) แล้วราคาแตะ 50D = ไม้ปกติ, แตะ 100D = ไม้ใหญ่กว่า, หลุด 200D = หยุดสะสมชั่วคราว รอเทรนด์กลับ — คำนวณจากราคาจริงอัตโนมัติ ไม่ใช่คำแนะนำการลงทุน</p>';
+  return o;
+}
 function spark(arr) {
   if (!arr || arr.length < 2) return "";
   var mn = Math.min.apply(null, arr), mx = Math.max.apply(null, arr), W = 300, H = 40, rng = mx - mn || 1;
@@ -329,6 +362,7 @@ function findItemMeta(t) {
   var meta = null;
   S.wl.groups.forEach(function (g) { g.items.forEach(function (it) { if (it.t === t && !meta) meta = Object.assign({groupId: g.id, group: g}, it); }); });
   if (!meta) S.wl.daily.forEach(function (it) { if (it.t === t && !meta) meta = Object.assign({groupId: null, group: null}, it); });
+  if (!meta) (S.wl.accumulate || []).forEach(function (it) { if (it.t === t && !meta) meta = Object.assign({groupId: null, group: null}, it); });
   return meta;
 }
 function detailHTML(t) {
@@ -344,7 +378,7 @@ function detailHTML(t) {
       return '<button data-detp="' + k + '" aria-pressed="' + (S.detPeriod === k) + '">' + k.toUpperCase() + "</button>";
     }).join("") + "</div>";
     o += lineChart(ser, DET_PERIODS[S.detPeriod]);
-    o += '<div class="chartlegend"><span><i style="background:currentColor"></i>ราคาปิด</span><span><i style="background:var(--gold)"></i>MA50</span><span><i style="background:var(--impr)"></i>MA200</span></div>';
+    o += '<div class="chartlegend"><span><i style="background:currentColor"></i>ราคาปิด</span><span><i style="background:var(--gold)"></i>MA50</span><span><i style="background:var(--sideways)"></i>MA100</span><span><i style="background:var(--impr)"></i>MA200</span></div>';
   }
 
   o += '<div class="gauges">' + gauge("RSI (14)", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], s.rsi == null ? "" : s.rsi >= 70 ? "โมเมนตัมร้อนแรง" : s.rsi <= 30 ? "โมเมนตัมอ่อนแรง" : "โมเมนตัมปกติ") +
@@ -402,6 +436,7 @@ function waveBox(wv) {
 }
 function lineChart(ser, n) {
   var d = ser.d.slice(-n), c = ser.c.slice(-n), m50 = ser.m50.slice(-n), m200 = ser.m200.slice(-n);
+  var m100 = (ser.m100 || []).slice(-n);
   var all = c.concat(m50.filter(function (v) { return v != null; })).concat(m200.filter(function (v) { return v != null; }));
   var mn = Math.min.apply(null, all), mx = Math.max.apply(null, all), rng = mx - mn || 1;
   var W = 340, H = 170, pad = 4;
@@ -414,7 +449,7 @@ function lineChart(ser, n) {
     return '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + stroke + '" stroke-width="' + (dash ? 1.3 : 1.8) + '"' + (dash ? ' stroke-dasharray="' + dash + '"' : "") + ' vector-effect="non-scaling-stroke"/>';
   }
   var o = '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="กราฟราคาพร้อมเส้นค่าเฉลี่ย">';
-  o += line(m200, "var(--impr)") + line(m50, "var(--gold)") + line(c, "currentColor");
+  o += line(m200, "var(--impr)") + line(m100, "var(--sideways)", "3,2") + line(m50, "var(--gold)") + line(c, "currentColor");
   o += '<text x="' + pad + '" y="' + (H - 4) + '" font-size="9" fill="currentColor" opacity=".55">' + fmtDate(d[0]) + '</text>';
   o += '<text x="' + (W - pad) + '" y="' + (H - 4) + '" font-size="9" text-anchor="end" fill="currentColor" opacity=".55">' + fmtDate(d[d.length - 1]) + '</text>';
   return o + "</svg>";
@@ -468,6 +503,7 @@ function render() {
   if (S.screen === "overview") { setHeader("Market Structure", "ภาพรวมตลาด", false); main.innerHTML = banner + overviewHTML(); }
   else if (S.screen === "list") { setHeader("รายการที่สนใจ", null, false); main.innerHTML = banner + listHTML(); }
   else if (S.screen === "daily") { setHeader("รายวัน", "ตัวที่เล่น + SL/TP", false); main.innerHTML = banner + dailyHTML(); }
+  else if (S.screen === "accum") { setHeader("สะสมระยะยาว", "สัญญาณตาม MA 50/100/200", false); main.innerHTML = banner + accumHTML(); }
   else if (S.screen === "detail") {
     var meta = findItemMeta(S.sel);
     setHeader(meta ? (meta.s || meta.t) : S.sel, null, true);

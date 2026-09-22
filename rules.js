@@ -26,6 +26,26 @@
     riskOff: {key: "risk-off", th: "Risk-Off", short: "ระวัง"},
   };
 
+  var ACCUM = {
+    pause: {key: "pause", th: "หลุด 200D — หยุดสะสมชั่วคราว", short: "หยุดชั่วคราว", rank: 0},
+    tier2: {key: "tier2", th: "แตะเส้น 100D — ไม้ใหญ่",       short: "ไม้ใหญ่ (100D)", rank: 1},
+    tier1: {key: "tier1", th: "แตะเส้น 50D — ไม้ปกติ",        short: "ไม้ปกติ (50D)",  rank: 2},
+    none:  {key: "none",  th: "เทรนด์ปกติ ยังไม่ถึงจุดเข้า",   short: "รอจังหวะ",       rank: 3},
+    unknown: {key: "unknown", th: "ไม่มีข้อมูลพอ", short: "–", rank: 4},
+  };
+  var ACCUM_TOL = 2; // % ระยะห่างจากเส้นที่นับว่า "แตะ"
+
+  /** สัญญาณสะสมระยะยาวแบบ buy-the-dip-in-uptrend จาก MA50/100/200 (s = symbols[t])
+   *  เทรนด์ถือว่ายังไม่เสียตราบใดที่ราคาสูงกว่าเส้น 200D — หลุด 200D = หยุดสะสมชั่วคราว
+   *  ไม่หลุด: แตะ (±ACCUM_TOL%) เส้น 100D ก่อน (ไม้ใหญ่กว่า) แล้วค่อยเช็คเส้น 50D (ไม้ปกติ) */
+  function accumSignal(s) {
+    if (!s || s.vs200 == null) return ACCUM.unknown;
+    if (s.vs200 < 0) return ACCUM.pause;
+    if (s.vs100 != null && Math.abs(s.vs100) <= ACCUM_TOL) return ACCUM.tier2;
+    if (s.vs50 != null && Math.abs(s.vs50) <= ACCUM_TOL) return ACCUM.tier1;
+    return ACCUM.none;
+  }
+
   /** สถานะของสินทรัพย์หนึ่งตัว จากตัวเลขใน prices.json (s = symbols[t]) */
   function statusOf(s) {
     if (!s || s.rsi == null || s.adx == null) return STATUS.unknown;
@@ -139,12 +159,14 @@
   var Rules = {
     STATUS: STATUS,
     REGIME: REGIME,
+    ACCUM: ACCUM,
     statusOf: statusOf,
     trendOf: trendOf,
     riskBasket: riskBasket,
     regimeOf: regimeOf,
     groupSummary: groupSummary,
     levels: levels,
+    accumSignal: accumSignal,
   };
 
   if (typeof module !== "undefined" && module.exports) {

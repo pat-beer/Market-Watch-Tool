@@ -307,6 +307,18 @@
    "th": "สินค้าโภคภัณฑ์",
    "en": "Bloomberg Commodity ETN",
    "cat": "commodity"
+  },
+  {
+   "t": "SMH",
+   "th": "เซมิคอนดักเตอร์",
+   "en": "Semiconductor ETF",
+   "cat": "equity"
+  },
+  {
+   "t": "DAPP",
+   "th": "หุ้นกลุ่มดิจิทัล/คริปโต",
+   "en": "Digital Transformation ETF",
+   "cat": "equity"
   }
  ],
  "regime": {

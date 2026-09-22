@@ -87,5 +87,11 @@ const lv3 = Rules.levels({bias: "short", entry: 100, sl: 110, tp: 80}, 105);
 eq(lv3.long, false, "short bias ระบุถูก");
 eq(Math.round(lv3.dSL * 10) / 10, 4.8, "short: ห่าง SL คำนวณถูกทิศทาง");
 
+const lv4 = Rules.levels({bias: "long", entry: 100, sl: 90, tp1: 130, tp2: 160}, 100);
+eq(lv4.tp1, 130, "tp1 ใช้แทน tp ได้");
+eq(lv4.rr, 3, "R:R หลักคำนวณจาก tp1");
+eq(lv4.rr2, 6, "R:R2 คำนวณจาก tp2 = (160-100)/(100-90) = 6");
+eq(Math.round(lv4.dTP2 * 10) / 10, 60, "ห่าง TP2 คำนวณถูก");
+
 console.log(`\n${pass} ผ่าน, ${fail} ไม่ผ่าน`);
 process.exit(fail ? 1 : 0);

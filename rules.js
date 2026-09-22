@@ -112,22 +112,28 @@
     };
   }
 
-  /** ระยะห่าง SL/TP, R:R และสถานะเตือน จากแผนของ Claude (d) เทียบราคาล่าสุด */
+  /** ระยะห่าง SL/TP1/TP2, R:R และสถานะเตือน จากแผนของ Claude (d) เทียบราคาล่าสุด
+   *  รองรับ d.tp1 (ใหม่) หรือ d.tp (เดิม) เป็นเป้าหลัก; d.tp2 เป็นเป้าที่สอง (ไม่บังคับ) */
   function levels(d, last) {
-    if (!d || d.sl == null || d.tp == null || last == null) return null;
+    var tp1 = d ? (d.tp1 != null ? d.tp1 : d.tp) : null;
+    if (!d || d.sl == null || tp1 == null || last == null) return null;
+    var tp2 = d.tp2 != null ? d.tp2 : null;
     var long = (d.bias || "long") !== "short";
     var entry = d.entry != null ? d.entry : last;
     var dSL = long ? (last - d.sl) / last * 100 : (d.sl - last) / last * 100;
-    var dTP = long ? (d.tp - last) / last * 100 : (last - d.tp) / last * 100;
+    var dTP = long ? (tp1 - last) / last * 100 : (last - tp1) / last * 100;
+    var dTP2 = tp2 == null ? null : (long ? (tp2 - last) / last * 100 : (last - tp2) / last * 100);
     var risk = long ? entry - d.sl : d.sl - entry;
-    var reward = long ? d.tp - entry : entry - d.tp;
+    var reward = long ? tp1 - entry : entry - tp1;
     var rr = risk > 0 && reward > 0 ? reward / risk : null;
+    var reward2 = tp2 == null ? null : (long ? tp2 - entry : entry - tp2);
+    var rr2 = tp2 != null && risk > 0 && reward2 > 0 ? reward2 / risk : null;
     var st = null;
     if (dSL <= 0) st = {key: "bad", th: "ทะลุ SL"};
-    else if (dTP <= 0) st = {key: "good", th: "ถึง TP"};
+    else if (dTP <= 0) st = {key: "good", th: "ถึง TP1"};
     else if (dSL < 1.5) st = {key: "warn", th: "ใกล้ SL"};
-    else if (dTP < 1.5) st = {key: "note", th: "ใกล้ TP"};
-    return {long: long, entry: entry, dSL: dSL, dTP: dTP, rr: rr, st: st};
+    else if (dTP < 1.5) st = {key: "note", th: "ใกล้ TP1"};
+    return {long: long, entry: entry, tp1: tp1, tp2: tp2, dSL: dSL, dTP: dTP, dTP2: dTP2, rr: rr, rr2: rr2, st: st};
   }
 
   var Rules = {

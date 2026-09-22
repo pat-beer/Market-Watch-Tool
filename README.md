@@ -35,7 +35,7 @@ Actions แตะเฉพาะ `prices.json`/`series.json` จึงไม่�
     "views": { "XLK": {"view": "overweight | neutral | underweight", "note": "สั้นๆ"} }
   },
   "daily": {
-    "GC=F": {"bias": "long | short", "entry": 3800, "sl": 3720, "tp": 3950, "note": "สั้นๆ", "asof": "2026-09-20"}
+    "GC=F": {"bias": "long | short", "entry": 3800, "sl": 3720, "tp1": 3950, "tp2": 4100, "note": "สั้นๆ", "asof": "2026-09-20"}
   },
   "waves": {
     "SPY": {
@@ -49,7 +49,7 @@ Actions แตะเฉพาะ `prices.json`/`series.json` จึงไม่�
   }
 }
 ```
-คีย์ใน `views`, `daily` และ `waves` ใช้ Yahoo ticker ตาม `watchlist.json` · `waves` ใส่เฉพาะตัวที่ Claude วิเคราะห์ไว้ ตัวอื่นในแอปจะไม่แสดงส่วนนี้
+คีย์ใน `views`, `daily` และ `waves` ใช้ Yahoo ticker ตาม `watchlist.json` · `waves` ใส่เฉพาะตัวที่ Claude วิเคราะห์ไว้ ตัวอื่นในแอปจะไม่แสดงส่วนนี้ · `tp2` ไม่บังคับ (ใส่เมื่อมีเป้าที่สอง) ถ้าใส่แค่ `tp` เฉยๆ (ไม่มี `tp1`) แอปจะอ่านเป็น TP1 ให้อัตโนมัติ (backward-compatible)
 
 ## Prompt สำหรับ Claude Code บน desktop (รันสัปดาห์ละครั้ง / เมื่อต้องปรับ SL-TP หรือนับคลื่น)
 ```

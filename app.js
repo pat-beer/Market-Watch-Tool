@@ -284,7 +284,9 @@ function dailyHTML() {
     if (L && L.st) o += '<span class="alert ' + L.st.key + '">' + L.st.th + "</span>";
     o += spark(s.spark);
     if (L) {
-      o += levelBar(d, L, s.last) + '<div class="dstats num">ห่าง SL <b>' + L.dSL.toFixed(1) + '%</b> · ห่าง TP <b>' + L.dTP.toFixed(1) + '%</b> · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + "</b></div>";
+      var tp2Stat = L.tp2 != null ? ' · ห่าง TP2 <b>' + L.dTP2.toFixed(1) + '%</b>' : "";
+      var rr2Stat = L.rr2 != null ? " (1:" + L.rr2.toFixed(1) + " ที่ TP2)" : "";
+      o += levelBar(d, L, s.last) + '<div class="dstats num">ห่าง SL <b>' + L.dSL.toFixed(1) + '%</b> · ห่าง TP1 <b>' + L.dTP.toFixed(1) + '%</b>' + tp2Stat + ' · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + rr2Stat + "</b></div>";
     } else {
       o += '<p class="empty">ยังไม่มี SL/TP — สั่ง Claude วิเคราะห์จาก desktop</p>';
     }
@@ -304,15 +306,21 @@ function spark(arr) {
   return '<svg class="spark" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + p + '" fill="none" stroke="' + (up ? "var(--strong)" : "var(--weak)") + '" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>';
 }
 function levelBar(d, L, last) {
-  var lo = Math.min(d.sl, d.tp), hi = Math.max(d.sl, d.tp), rng = hi - lo || 1;
+  var pts = [d.sl, L.tp1]; if (L.tp2 != null) pts.push(L.tp2);
+  var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts), rng = hi - lo || 1;
   function pos(p) { return Math.max(0, Math.min(1, (p - lo) / rng)) * 100; }
   var e = pos(L.entry);
   var left = L.long ? "seg-r" : "seg-g", right = L.long ? "seg-g" : "seg-r";
-  var slSide = d.sl <= d.tp ? "left" : "right";
-  function lab(kind, v) { return '<span class="' + kind + '">' + kind.toUpperCase() + " " + price(v) + "</span>"; }
+  var slSide = d.sl <= L.tp1 ? "left" : "right";
+  function lab(kind, txt, v) { return '<span class="' + kind + '">' + txt + " " + price(v) + "</span>"; }
+  var tp2Mark = L.tp2 != null ? '<span class="tp2mk" style="left:' + pos(L.tp2) + '%"></span>' : "";
+  var tp2Lab = L.tp2 != null ? lab("tp tp2", "TP2", L.tp2) : "";
+  var labels = slSide === "left"
+    ? lab("sl", "SL", d.sl) + lab("tp", "TP1", L.tp1) + tp2Lab
+    : tp2Lab + lab("tp", "TP1", L.tp1) + lab("sl", "SL", d.sl);
   return '<div class="lv"><div class="bar"><span class="' + left + '" style="width:' + e + '%"></span><span class="' + right + '" style="width:' + (100 - e) + '%"></span>' +
-    '<span class="et" style="left:' + e + '%"></span><span class="mk" style="left:' + pos(last) + '%"></span></div>' +
-    '<div class="lvl">' + (slSide === "left" ? lab("sl", d.sl) + lab("tp", d.tp) : lab("tp", d.tp) + lab("sl", d.sl)) + "</div></div>";
+    '<span class="et" style="left:' + e + '%"></span><span class="mk" style="left:' + pos(last) + '%"></span>' + tp2Mark + '</div>' +
+    '<div class="lvl">' + labels + "</div></div>";
 }
 
 /* ================= DETAIL (เต็มจอ) ================= */

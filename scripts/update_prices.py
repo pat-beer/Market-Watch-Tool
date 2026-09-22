@@ -219,7 +219,8 @@ def demo_analysis(wl, symbols):
             "bias": "long",
             "entry": rnd(last, 4),
             "sl": rnd(last - 2 * atr, 4),
-            "tp": rnd(last + 3 * atr, 4),
+            "tp1": rnd(last + 3 * atr, 4),
+            "tp2": rnd(last + 5 * atr, 4),
             "note": "ตัวอย่างสำหรับดู UI",
             "asof": dt.date.today().isoformat(),
         }

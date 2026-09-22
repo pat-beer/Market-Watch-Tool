@@ -180,8 +180,10 @@ svg.rrg text{font-family:Inter,Kanit,sans-serif}
 .bar .seg-r{background:color-mix(in srgb, var(--weak) 28%, transparent)} .bar .seg-g{background:color-mix(in srgb, var(--strong) 28%, transparent)}
 .mk{position:absolute;top:-.2rem;width:.9rem;height:.9rem;border-radius:50%;background:var(--ink);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--ink);transform:translateX(-50%)}
 .et{position:absolute;top:-.15rem;width:2px;height:.8rem;background:var(--ink);opacity:.45}
-.lvl{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:.35rem}
+.tp2mk{position:absolute;top:-.15rem;width:2px;height:.8rem;background:var(--strong);opacity:.55;border-left:2px dashed var(--strong)}
+.lvl{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:.35rem;gap:.4rem}
 .lvl .sl{color:var(--weak);font-weight:700} .lvl .tp{color:var(--strong);font-weight:700}
+.lvl .tp2{opacity:.75}
 .dstats{font-size:.8rem;color:var(--muted);margin-top:.4rem}
 .dstats b{color:var(--ink);font-weight:700}
 .tags{margin-top:.45rem}

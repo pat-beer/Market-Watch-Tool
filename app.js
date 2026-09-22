@@ -452,8 +452,9 @@ function render() {
   document.querySelectorAll(".nav button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === (S.screen === "detail" ? S.from : S.screen)); });
   var main = $("#main");
   if (!S.px) return;
-  var demo = S.px.demo || (S.an && S.an.demo);
-  var banner = (demo ? '<div class="banner">กำลังแสดงข้อมูลตัวอย่าง — จะถูกแทนที่เมื่อรันอัปเดตจริงและ Claude วิเคราะห์</div>' : "") +
+  // banner นี้บอกเฉพาะสถานะ "ราคา" เท่านั้น — สถานะ "มุมมองวิเคราะห์" (analysis.json) มีป้ายของตัวเองใน weeklyNote()/waveBox()/SL-TP
+  // เพราะราคาจะกลายเป็นของจริงก่อนเสมอ (อัตโนมัติ) ส่วนการวิเคราะห์รอ Claude แยกต่างหาก การรวมเงื่อนไขไว้ที่เดียวทำให้ banner นี้ค้างแสดงแม้ราคาจริงเข้ามาแล้ว
+  var banner = (S.px.demo ? '<div class="banner">ราคายังเป็นข้อมูลตัวอย่าง — จะถูกแทนที่เมื่อรัน GitHub Actions ครั้งแรก</div>' : "") +
     (S.px.failed && S.px.failed.length ? '<div class="banner">ดึงราคาไม่ได้: ' + esc(S.px.failed.join(", ")) + '</div>' : "");
 
   if (S.screen === "overview") { setHeader("Market Structure", "ภาพรวมตลาด", false); main.innerHTML = banner + overviewHTML(); }

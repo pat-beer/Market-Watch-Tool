@@ -513,35 +513,47 @@ function detailHTML(t) {
   }
 
   // RRG / Elliott Wave / มุมมองสัปดาห์ / แผนเทรด SL-TP เป็นข้อมูลฝั่งเทรดระยะสั้น
-  // ไม่เกี่ยวกับการตัดสินใจสะสมระยะยาว — ซ่อนไว้เมื่อเปิดจากแท็บ "สะสม" เพื่อให้หน้าจอกระชับ
-  if (!ac) {
-    if (meta.group && meta.group.rrg && s.rrg_by && s.rrg_by[meta.group.benchmark]) {
-      var r = s.rrg_by[meta.group.benchmark];
-      o += '<div class="viewbox"><span class="lbl">ตำแหน่งใน RRG (เทียบ ' + esc(meta.group.benchmark) + ')</span><br>' +
-        '<span class="chip"><i style="background:' + Q[r.quad].hex + '"></i>' + Q[r.quad].th + '</span> RS-Ratio ' + r.x.toFixed(2) + ' · RS-Momentum ' + r.y.toFixed(2) + '</div>';
-    }
-
-    var wv = S.an && S.an.waves ? S.an.waves[t] : null;
-    o += waveBox(wv);
-
-    var view = S.an && S.an.weekly && S.an.weekly.views ? S.an.weekly.views[t] : null;
-    if (view) {
-      var v = VIEW[view.view || view];
-      o += '<div class="viewbox"><span class="lbl">มุมมองสัปดาห์ (Claude)</span><br><b class="' + (v ? v.cl : "") + '">' + (v ? v.ic + " " + v.th : "–") + '</b>' + (view.note ? " — " + esc(view.note) : "") + "</div>";
-    }
-
-    var d = S.an && S.an.daily ? S.an.daily[t] : null;
-    var L = Rules.levels(d, s.last);
-    if (L) {
-      var age = d.asof ? daysAgo(d.asof) : null;
-      o += '<div class="sectionhd"><h2>แผนเทรด (SL/TP)</h2></div><div class="plan">' + levelBar(d, L, s.last) +
-        '<div class="dstats num">ห่าง SL <b>' + L.dSL.toFixed(1) + '%</b> · ห่าง TP <b>' + L.dTP.toFixed(1) + '%</b> · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + '</b></div>' +
-        (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : "") +
-        '<div class="dmeta' + (age > 7 ? " old" : "") + '">ระดับวิเคราะห์ ' + fmtDate(d.asof) + (age > 7 ? " (เก่า " + age + " วัน)" : "") + '</div></div>';
-    }
+  // ไม่ใช่ตัวตัดสินใจหลักของการสะสมระยะยาว — เมื่อเปิดจากแท็บ "สะสม" จะพับไว้ใต้ "ดูข้อมูลเพิ่มเติม"
+  // (ไม่ตัดทิ้ง แค่ไม่บังคับให้ทุกคนเลื่อนผ่าน — ใครอยากอ่านลึกกดดูได้เสมอ)
+  var extraLabels = [], extraHtml = "";
+  if (meta.group && meta.group.rrg && s.rrg_by && s.rrg_by[meta.group.benchmark]) {
+    var r = s.rrg_by[meta.group.benchmark];
+    extraLabels.push("RRG");
+    extraHtml += '<div class="viewbox"><span class="lbl">ตำแหน่งใน RRG (เทียบ ' + esc(meta.group.benchmark) + ')</span><br>' +
+      '<span class="chip"><i style="background:' + Q[r.quad].hex + '"></i>' + Q[r.quad].th + '</span> RS-Ratio ' + r.x.toFixed(2) + ' · RS-Momentum ' + r.y.toFixed(2) + '</div>';
   }
 
-  if (ac) o += accumSummaryHTML(ac);
+  var wv = S.an && S.an.waves ? S.an.waves[t] : null;
+  if (wv) extraLabels.push("Elliott Wave");
+  extraHtml += waveBox(wv);
+
+  var view = S.an && S.an.weekly && S.an.weekly.views ? S.an.weekly.views[t] : null;
+  if (view) {
+    var v = VIEW[view.view || view];
+    extraLabels.push("มุมมองสัปดาห์");
+    extraHtml += '<div class="viewbox"><span class="lbl">มุมมองสัปดาห์ (Claude)</span><br><b class="' + (v ? v.cl : "") + '">' + (v ? v.ic + " " + v.th : "–") + '</b>' + (view.note ? " — " + esc(view.note) : "") + "</div>";
+  }
+
+  var d = S.an && S.an.daily ? S.an.daily[t] : null;
+  var L = Rules.levels(d, s.last);
+  if (L) {
+    var age = d.asof ? daysAgo(d.asof) : null;
+    extraLabels.push("SL/TP");
+    extraHtml += '<div class="sectionhd"><h2>แผนเทรด (SL/TP)</h2></div><div class="plan">' + levelBar(d, L, s.last) +
+      '<div class="dstats num">ห่าง SL <b>' + L.dSL.toFixed(1) + '%</b> · ห่าง TP <b>' + L.dTP.toFixed(1) + '%</b> · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + '</b></div>' +
+      (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : "") +
+      '<div class="dmeta' + (age > 7 ? " old" : "") + '">ระดับวิเคราะห์ ' + fmtDate(d.asof) + (age > 7 ? " (เก่า " + age + " วัน)" : "") + '</div></div>';
+  }
+
+  if (ac) {
+    // แท็บสะสม: สรุปสั้นด้านบนก่อน แล้วค่อยพับรายละเอียดเสริมไว้ให้กดเปิดเอง
+    o += accumSummaryHTML(ac);
+    if (extraHtml) {
+      o += '<details class="moreinfo"><summary>ดูข้อมูลเพิ่มเติม · ' + esc(extraLabels.join(" · ")) + '</summary><div class="moreinfo-body">' + extraHtml + "</div></details>";
+    }
+  } else {
+    o += extraHtml;
+  }
 
   o += '<p class="foot">ข้อมูลราคาถึง ' + fmtDate(s.asof) + ' · ตัวชี้วัดทั้งหมดเป็นข้อมูลเชิงโครงสร้าง ไม่ใช่สัญญาณซื้อขาย</p>';
   return o;

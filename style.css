@@ -204,6 +204,16 @@ svg.rrg text{font-family:Inter,Kanit,sans-serif}
 .accumsummary{border:1px solid var(--line);border-radius:14px;padding:.65rem .8rem;margin-top:.5rem}
 .accumsummary h4{margin:0 0 .3rem;font-size:.88rem;display:flex;align-items:center;gap:.4rem}
 .accumsummary ul{margin:0;padding-left:1.05rem;font-size:.82rem;color:var(--muted);line-height:1.45}
+
+/* แท็บสะสม: กล่องพับ "ดูข้อมูลเพิ่มเติม" (RRG/Elliott Wave/มุมมองสัปดาห์/SL-TP) — สรุปสั้นก่อน อยากอ่านลึกค่อยกด */
+.moreinfo{border:1px solid var(--line);border-radius:14px;padding:.15rem .8rem;margin-top:.5rem}
+.moreinfo[open]{padding-bottom:.7rem}
+.moreinfo summary{list-style:none;cursor:pointer;padding:.6rem 0;font-size:.82rem;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.moreinfo summary::-webkit-details-marker{display:none}
+.moreinfo summary::after{content:"▾";font-size:.7rem;color:var(--faint);transition:transform .15s}
+.moreinfo[open] summary::after{transform:rotate(180deg)}
+.moreinfo-body{padding-top:.15rem}
+.moreinfo-body .viewbox:first-child,.moreinfo-body .wavewrap:first-child{margin-top:0}
 .kpirow{display:flex;gap:.5rem;margin-top:.5rem}
 .kpirow .maline span{white-space:nowrap}
 

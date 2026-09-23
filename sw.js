@@ -1,5 +1,5 @@
 // Service worker: shell = cache-first, ไฟล์ข้อมูล = network-first (ออฟไลน์ใช้ตัวล่าสุดที่เคยโหลด)
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE = "market-board-" + VERSION;
 const SHELL = ["./", "index.html", "manifest.json", "watchlist.json",
   "style.css", "rules.js", "app.js",

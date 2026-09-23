@@ -66,6 +66,15 @@ def atr_wilder(df, n=14):
     return true_range(df).ewm(alpha=1 / n, adjust=False).mean()
 
 
+def macd(close, fast=12, slow=26, signal=9):
+    """MACD(12,26,9) มาตรฐาน — คืน (macd_line, signal_line, hist) เป็น Series"""
+    ema_fast = close.ewm(span=fast, adjust=False).mean()
+    ema_slow = close.ewm(span=slow, adjust=False).mean()
+    macd_line = ema_fast - ema_slow
+    signal_line = macd_line.ewm(span=signal, adjust=False).mean()
+    return macd_line, signal_line, macd_line - signal_line
+
+
 def adx_wilder(df, n=14):
     """Wilder's ADX(14) — คืน (plusDI, minusDI, adx) เป็น Series"""
     up = df["High"].diff()
@@ -145,6 +154,11 @@ def build_symbol(df, bench_close=None, want_spark=False, tail=5):
     if has_hl:
         _, _, adx = adx_wilder(df)
         rec["adx"] = rnd(adx.iloc[-1], 1)
+    if len(c) >= 35:  # 26 (slow EMA) + 9 (signal) ให้ค่าเริ่มนิ่งพอสมควร
+        macd_line, signal_line, hist = macd(c)
+        rec["macd"] = rnd(macd_line.iloc[-1], 4)
+        rec["macdSignal"] = rnd(signal_line.iloc[-1], 4)
+        rec["macdHist"] = rnd(hist.iloc[-1], 4)
     if want_spark:
         rec["spark"] = [rnd(v, 4) for v in c.iloc[-SPARK_DAYS:].tolist()]
     if bench_close is not None:

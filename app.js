@@ -298,38 +298,153 @@ function dailyHTML() {
   o += '<p class="foot">สถานะเตือนคำนวณจากราคา ณ รอบอัปเดตล่าสุด (ไม่ใช่เรียลไทม์) · ราคาเช้า/เย็นอัปเดตอัตโนมัติ ส่วน SL/TP มาจากการวิเคราะห์บน desktop</p>';
   return o;
 }
-/* ================= ACCUMULATE (สะสมระยะยาว: MA50/100/200) ================= */
+/* ================= ACCUMULATE (สะสมระยะยาว: Trend Status + Accumulation Action) =================
+ * Trend  (MA200=regime, MA50=เทรนด์ระยะกลาง)  ตอบ "ตลาดอยู่ในโครงสร้างแบบไหน?"
+ * Action (โซน MA100 ถูกครอบด้วย Trend เสมอ)   ตอบ "ตอนนี้ควรทำอย่างไร?"
+ * ตรรกะทั้งหมดอยู่ใน rules.js (SSOT) — ไฟล์นี้แสดงผลอย่างเดียว ห้ามคำนวณซ้ำ */
+var ACCUM_SORT_RANK = {pause: 0, increase: 1, scaledIn: 2, wait: 3, normal: 4, unknown: 5};
+function accumCardsOf() {
+  var list = S.wl.accumulate || [];
+  return list.map(function (it, idx) {
+    var s = S.px.symbols[it.t]; if (!s) return null;
+    var trend = Rules.getTrendStatus(s), zone = Rules.getAccumulationZone(s);
+    return {it: it, s: s, idx: idx, trend: trend, zone: zone, action: Rules.getAccumulationAction(trend, zone), adxS: Rules.getADXStrength(s.adx)};
+  }).filter(Boolean);
+}
+function accumActionClass(a) { return {wait: "note", normal: "good", increase: "gold", scaledIn: "warn", pause: "bad"}[a.key] || ""; }
+function trendBadge(trend) { return '<span class="trendbadge ' + trend.key + '">' + (trend.arrow ? trend.arrow + " " : "") + esc(trend.th) + "</span>"; }
 function accumHTML() {
   var list = S.wl.accumulate || [];
-  var cards = list.map(function (it, idx) {
-    var s = S.px.symbols[it.t]; if (!s) return null;
-    return {it: it, s: s, idx: idx, a: Rules.accumSignal(s)};
-  }).filter(Boolean);
-  cards.sort(function (a, b) { return a.a.rank - b.a.rank || a.idx - b.idx; });
-  var alerts = cards.filter(function (c) { return c.a.key === "pause" || c.a.key === "tier1" || c.a.key === "tier2"; }).length;
-  var o = '<div class="chead"><h3>สะสมระยะยาว<span class="sub">' + cards.length + " ตัว" + (alerts ? " · สัญญาณ " + alerts : "") + '</span></h3></div>';
+  var cards = accumCardsOf();
+  cards.sort(function (a, b) { return ACCUM_SORT_RANK[a.action.key] - ACCUM_SORT_RANK[b.action.key] || a.idx - b.idx; });
+  var alerts = cards.filter(function (c) { return c.action.key === "pause" || c.action.key === "increase" || c.action.key === "scaledIn"; }).length;
+  var o = '<div class="chead"><h3>สะสมระยะยาว<span class="sub">' + cards.length + " ตัว" + (alerts ? " · น่าสนใจ " + alerts : "") + '</span></h3>' +
+    '<button class="help" data-accum-glossary="1" aria-label="คำอธิบายตัวชี้วัด">?</button></div>';
   if (!list.length) {
     o += '<p class="empty">ยังไม่มีรายการ — เพิ่มตัวที่จะสะสมได้ที่ watchlist.json → "accumulate"</p>';
   }
   cards.forEach(function (c) {
-    var it = c.it, s = c.s, a = c.a;
+    var it = c.it, s = c.s, trend = c.trend, zone = c.zone, action = c.action, adxS = c.adxS;
     var rows = [
-      {lbl: "50D", v: s.vs50, hit: a.key === "tier1"},
-      {lbl: "100D", v: s.vs100, hit: a.key === "tier2"},
-      {lbl: "200D", v: s.vs200, hit: a.key === "pause"},
+      {lbl: "MA50", v: s.vs50},
+      {lbl: "MA100", v: s.vs100, hit: zone.key === "C"},
+      {lbl: "MA200", v: s.vs200},
     ];
-    o += '<article class="dcard ' + (a.key === "pause" ? "bad" : a.key === "tier1" || a.key === "tier2" ? "warn" : "") + '">' +
+    o += '<article class="dcard ' + (trend.key === "red" ? "bad" : trend.key === "yellow" ? "warn" : "") + '">' +
       '<div class="dtop"><div class="id"><b>' + esc(it.s || it.t) + '</b><span>' + esc(it.th) + '</span></div>' +
       '<div class="pr"><b class="num">' + price(s.last) + '</b><span class="num ' + (s.chg >= 0 ? "up" : "down") + '">' + pct(s.chg, 2) + "</span></div></div>";
-    if (a.key !== "none" && a.key !== "unknown") o += '<span class="alert ' + (a.key === "pause" ? "bad" : "warn") + '">' + a.th + "</span>";
+    o += '<div class="trendrow">' + trendBadge(trend) + '<span class="alert ' + accumActionClass(action) + '">' + esc(action.th) + "</span></div>";
     o += spark(s.spark);
     o += '<div class="malines">' + rows.map(function (r) {
       return '<div class="maline' + (r.hit ? " hit" : "") + '"><span>' + r.lbl + "</span><b class=\"num\">" + (r.v == null ? "–" : pct(r.v)) + "</b></div>";
     }).join("") + "</div>";
+    var adxTxt = s.adx == null ? "ADX –" : "ADX " + s.adx.toFixed(1) + " (" + adxS.th + ")";
+    o += '<div class="accummeta">' + (s.vs100 == null ? "" : "ห่าง MA100 " + pct(s.vs100) + " · ") + adxTxt + "</div>";
     o += '<button class="row" style="border:0;padding:.4rem 0 0;color:var(--gold);font-weight:600;font-size:.82rem" data-open="' + esc(it.t) + '">ดูกราฟและรายละเอียด →</button></article>';
   });
-  o += '<p class="foot">แผนคร่าวๆ: เทรนด์ยังไม่เสีย (ราคา &gt; 200D) แล้วราคาแตะ 50D = ไม้ปกติ, แตะ 100D = ไม้ใหญ่กว่า, หลุด 200D = หยุดสะสมชั่วคราว รอเทรนด์กลับ — คำนวณจากราคาจริงอัตโนมัติ ไม่ใช่คำแนะนำการลงทุน</p>';
+  o += '<p class="foot">Trend (MA200/MA50) บอกโครงสร้างระยะยาว · Zone (MA100) บอกจังหวะเข้า · Action = Zone ที่ถูก Trend ครอบเพดานไว้เสมอ (หลุด MA200 = ชะลอทุกกรณี) — คำนวณจากราคาจริงอัตโนมัติ ไม่ใช่คำแนะนำการลงทุน</p>';
   return o;
+}
+
+/* ---- accumulate: คำอธิบาย "ทำไม" สำหรับหน้า Detail ---- */
+function accumTrendReason(trend) {
+  return {
+    green: "ราคายังอยู่เหนือ MA50 และ MA200",
+    yellow: "ราคายังอยู่เหนือ MA200 แต่ต่ำกว่า MA50 — โมเมนตัมระยะกลางเริ่มอ่อน",
+    red: "ราคาหลุดต่ำกว่า MA200 — โครงสร้างระยะยาวเริ่มเสีย",
+    unknown: "ข้อมูลไม่พอสำหรับประเมินเทรนด์",
+  }[trend.key];
+}
+function accumZoneReason(zone) {
+  return {
+    A: "ราคาสูงกว่า MA100 (จุดอ้างอิงสะสม) มากแล้ว",
+    B: "ห่างจาก MA100 อยู่ในระดับปกติ",
+    C: "ราคาเข้าใกล้ MA100 แล้ว",
+    D: "ราคาหลุดต่ำกว่า MA100 แล้ว",
+    E: "ราคาต่ำกว่า MA100 ค่อนข้างมาก",
+    unknown: "ข้อมูลไม่พอสำหรับประเมินโซนสะสม",
+  }[zone.key];
+}
+function accumExplain(trend, zone, action) {
+  if (trend.key === "unknown" || zone.key === "unknown") return "ข้อมูลไม่พอสำหรับสรุปคำแนะนำ";
+  if (trend.key === "red") return "ราคาหลุดต่ำกว่า MA200 — โครงสร้างระยะยาวเริ่มเสีย ชะลอการเพิ่มน้ำหนัก รอ Trend กลับมาชัดเจนก่อน";
+  var tail = action.key === "increase" ? " จึงพิจารณาเพิ่มน้ำหนักสะสมได้"
+    : action.key === "wait" ? " จึงยังไม่เร่งเข้า รอราคาย่อลงมาใกล้ MA100 ก่อน" : "";
+  return accumTrendReason(trend) + " " + accumZoneReason(zone) + tail;
+}
+function accumSummaryBullets(trend, zone, action) {
+  if (trend.key === "red") return ["โครงสร้างระยะยาวเริ่มเสีย", "ชะลอการเพิ่มน้ำหนัก", "รอ Trend กลับมาชัดเจน"];
+  var b = ["ตั้งใจลงทุนระยะยาว (RMF / Long-term Growth)", trend.key === "yellow" ? "แนวโน้มระยะกลางเริ่มอ่อนตัว ระยะยาวยังไม่เสีย" : "แนวโน้มหลักยังเป็นขาขึ้น", action.th];
+  if (zone.key !== "C" && zone.key !== "D") b.push("พิจารณาเพิ่มน้ำหนักเมื่อราคาเข้าใกล้ MA100");
+  return b;
+}
+function accumDecisionHTML(c) {
+  var trend = c.trend, zone = c.zone, action = c.action;
+  var o = '<div class="sectionhd"><h2>สรุปการตัดสินใจ</h2><button class="help" data-accum-glossary="1" aria-label="คำอธิบายตัวชี้วัด">?</button></div>';
+  o += '<div class="accumdecision"><div class="trendrow">' + trendBadge(trend) + '<span class="alert ' + accumActionClass(action) + '">' + esc(action.th) + "</span></div>" +
+    '<p class="accumexplain">' + esc(accumExplain(trend, zone, action)) + "</p></div>";
+  return o;
+}
+function accumKpiHTML(c, ser) {
+  var s = c.s;
+  function maVal(arr) { return arr && arr.length ? arr[arr.length - 1] : null; }
+  var m50 = ser ? maVal(ser.m50) : null, m100 = ser ? maVal(ser.m100) : null, m200 = ser ? maVal(ser.m200) : null;
+  var rows = [
+    {lbl: "MA50", v: m50, d: s.vs50, hit: false},
+    {lbl: "MA100 (จุดอ้างอิงสะสม)", v: m100, d: s.vs100, hit: c.zone.key === "C"},
+    {lbl: "MA200", v: m200, d: s.vs200, hit: false},
+  ];
+  var o = '<div class="malines">' + rows.map(function (r) {
+    return '<div class="maline' + (r.hit ? " hit" : "") + '"><span>' + r.lbl + '</span><b class="num">' + (r.v == null ? "–" : price(r.v)) + '</b>' +
+      '<span class="num ' + (r.d >= 0 ? "up" : "down") + '" style="display:block;font-size:.7rem">' + (r.d == null ? "" : pct(r.d)) + "</span></div>";
+  }).join("") + "</div>";
+  o += '<div class="gauges" style="margin-top:.6rem">' +
+    gauge("RSI (14)", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], "ตัวชี้วัดเสริม — ไม่ใช่สัญญาณซื้อ/ขายอัตโนมัติ") +
+    gauge("ADX (14)", s.adx, 0, 50, [[0, 20, "var(--sideways)"], [20, 50, "var(--strong)"]], "ความแรง " + c.adxS.th) + "</div>";
+  if (s.macd != null && s.macdSignal != null) {
+    o += '<div class="viewbox" style="margin-top:.6rem"><span class="lbl">MACD (12,26,9)</span><br>' +
+      '<b class="num ' + (s.macd >= s.macdSignal ? "up" : "down") + '">' + s.macd.toFixed(2) + '</b>' +
+      '<span class="num" style="color:var(--muted);font-size:.8rem"> vs Signal ' + s.macdSignal.toFixed(2) + '</span>' +
+      '<div style="font-size:.76rem;color:var(--muted);margin-top:.2rem">' + (s.macd >= s.macdSignal ? "MACD เหนือ Signal — สนับสนุนโมเมนตัมบวก" : "MACD ต่ำกว่า Signal — สนับสนุนโมเมนตัมอ่อนลง") + " (หลักฐานสนับสนุน ไม่ override MA)</div></div>";
+  }
+  return o;
+}
+function accumSummaryHTML(c) {
+  var bullets = accumSummaryBullets(c.trend, c.zone, c.action);
+  return '<div class="accumsummary"><h4>🎯 แนวทางการสะสม</h4><ul>' + bullets.map(function (b) { return "<li>" + esc(b) + "</li>"; }).join("") + "</ul></div>";
+}
+function accumGlossarySheet() {
+  var TH = Rules.ACCUM_THRESHOLDS, AD = Rules.ADX_THRESHOLDS;
+  var o = '<h3>คำอธิบาย — แท็บสะสมระยะยาว</h3><p class="sub">เตือนว่าตัวเลขมาจากอะไร และตีความอย่างไร ใช้สำหรับพอร์ตสะสม/RMF ไม่ใช่สัญญาณเทรด</p>';
+  o += '<div class="rulebox"><h4><i style="background:var(--strong)"></i>↗ ขาขึ้น (Uptrend)</h4><ul>' +
+    "<li>แนวโน้มหลักยังเป็นบวก ราคาและเส้นค่าเฉลี่ยสนับสนุนโครงสร้างขาขึ้น</li><li>แนวทางทั่วไป: สะสมตามแผน</li></ul></div>";
+  o += '<div class="rulebox"><h4><i style="background:var(--caution)"></i>≈ อ่อนตัว (Weakening)</h4><ul>' +
+    "<li>แนวโน้มระยะยาวอาจยังไม่เสีย แต่แนวโน้มระยะกลางกำลังอ่อนลง</li><li>แนวทางทั่วไป: รอจังหวะ / สะสมอย่างระมัดระวัง</li></ul></div>";
+  o += '<div class="rulebox"><h4><i style="background:var(--weak)"></i>↘ ขาลง (Downtrend)</h4><ul>' +
+    "<li>โครงสร้างระยะยาวอ่อนแอลงอย่างมีนัยสำคัญ โดยเฉพาะเมื่อราคาหลุด MA200</li><li>แนวทางทั่วไป: ยังไม่เร่งสะสม</li></ul></div>";
+  o += '<div class="rulebox"><h4>เส้นค่าเฉลี่ย (Moving Averages)</h4><ul>' +
+    '<li><b>MA50</b> = เทรนด์ระยะกลาง ใช้ดูทิศทางแนวโน้มระยะกลาง</li>' +
+    '<li><b>MA100</b> = จุดอ้างอิงสะสม ใช้เป็นจุดอ้างอิงสำหรับ "สะสมตอนย่อ"</li>' +
+    "<li><b>MA200</b> = โครงสร้างระยะยาว ใช้ดูว่าแนวโน้มระยะยาวยังเป็นขาขึ้นหรือเริ่มเปลี่ยน regime</li></ul></div>";
+  o += '<div class="rulebox"><h4>% ระยะห่างจากเส้นค่าเฉลี่ย</h4>' +
+    '<p class="sub">สูตร: (ราคาปัจจุบัน / เส้นค่าเฉลี่ย − 1) × 100 — เช่น "MA100 +3.1%" หมายถึงราคาอยู่ <b>เหนือ</b> MA100 อยู่ 3.1% ค่าเป็นบวก = ราคาอยู่เหนือเส้น ค่าเป็นลบ = ราคาอยู่ต่ำกว่าเส้น</p></div>';
+  o += '<div class="rulebox"><h4>โซนสะสม (อิง MA100)</h4><table class="zonetable"><tbody>' +
+    "<tr><td>&gt; +" + TH.extended + "%</td><td>สูงกว่าโซนสะสมมาก</td><td>รอจังหวะย่อ</td></tr>" +
+    "<tr><td>+" + TH.normal + "% – +" + TH.extended + "%</td><td>Trend ปกติ</td><td>สะสมตามแผน</td></tr>" +
+    "<tr><td>" + TH.nearMA + "% – +" + TH.normal + "%</td><td>เข้าใกล้ MA100</td><td>เพิ่มน้ำหนักสะสม</td></tr>" +
+    "<tr><td>" + TH.deepPullback + "% – " + TH.nearMA + "%</td><td>หลุด MA100</td><td>สะสมแบบแบ่งไม้ / ตรวจ Trend</td></tr>" +
+    "<tr><td>&lt; " + TH.deepPullback + "%</td><td>ระวังแนวโน้มเปลี่ยน</td><td>ชะลอ / รอความชัดเจน</td></tr></tbody></table>" +
+    '<p class="sub">ระดับดังกล่าวเป็นเกณฑ์เริ่มต้นของระบบ และสามารถปรับจากผล Backtest ในอนาคต — หากเทรนด์ (MA200/MA50) ไม่ดี การกระทำจะถูกลดระดับหรือ "ชะลอ" เสมอ ไม่ว่าโซนจะดูน่าดึงดูดแค่ไหน</p></div>';
+  o += '<div class="rulebox"><h4>ADX — ความแรงของเทรนด์</h4>' +
+    '<p class="sub">ADX วัด<b>ความแรง</b>ของเทรนด์ ไม่บอกทิศทาง — ADX สูง ≠ ตลาดขาขึ้น (เกิดได้ทั้งขาขึ้นและขาลง)</p><ul>' +
+    "<li>ADX &lt; " + AD.weak + " — แนวโน้มอ่อน / Sideway</li>" +
+    "<li>ADX " + AD.weak + "–" + AD.emerging + " — เริ่มมีแนวโน้ม</li>" +
+    "<li>ADX &gt; " + AD.emerging + " — แนวโน้มชัดเจน</li>" +
+    "<li>ADX &gt; " + AD.strong + " — แนวโน้มแข็งแรง</li></ul></div>";
+  o += '<div class="rulebox"><h4>RSI</h4><p class="sub">เป็นตัวชี้วัดโมเมนตัมเสริม ไม่ใช่สัญญาณซื้อ/ขายอัตโนมัติ (ไม่ใช่ว่า RSI&gt;70 ต้องขาย หรือ RSI&lt;30 ต้องซื้อ) — ใช้เป็นบริบทประกอบเท่านั้น</p></div>';
+  o += '<div class="rulebox"><h4>MACD (12,26,9)</h4><p class="sub">ใช้ประเมินโมเมนตัมและการเปลี่ยนโมเมนตัม — MACD &gt; Signal สนับสนุนโมเมนตัมบวก, MACD &lt; Signal สนับสนุนโมเมนตัมอ่อนลง เป็นหลักฐานสนับสนุนเท่านั้น ไม่ override โครงสร้าง MA ระยะยาว</p></div>';
+  o += '<div class="banner" style="margin-top:.6rem">เกณฑ์นี้เป็นแนวทางการวิเคราะห์ของเราเอง เพื่อช่วยการสะสมระยะยาว (RMF/Long-term Growth) ไม่ใช่สัญญาณซื้อขาย</div>';
+  openSheet(o);
 }
 function spark(arr) {
   if (!arr || arr.length < 2) return "";
@@ -369,8 +484,17 @@ function detailHTML(t) {
   var s = S.px.symbols[t]; if (!s) return '<p class="empty">ไม่พบข้อมูล</p>';
   var meta = findItemMeta(t) || {t: t, th: t, en: t};
   var disp = meta.s || t;
+  // "สรุปการตัดสินใจ" + KPI สะสม แสดงเฉพาะเมื่อเปิดจากแท็บ "สะสม" เท่านั้น (ไม่แตะหน้า Detail ของ "รายวัน")
+  var isAccum = S.from === "accum";
+  var ac = null;
+  if (isAccum) {
+    var trend = Rules.getTrendStatus(s), zone = Rules.getAccumulationZone(s);
+    ac = {s: s, trend: trend, zone: zone, action: Rules.getAccumulationAction(trend, zone), adxS: Rules.getADXStrength(s.adx)};
+  }
   var o = '<div class="dethead"><div class="nm">' + esc(disp) + '</div><div class="sub">' + esc(meta.th || "") + (meta.en ? " · " + esc(meta.en) : "") + "</div></div>";
   o += '<div class="detprice"><b class="num">' + price(s.last) + '</b><span class="num ' + (s.chg >= 0 ? "up" : "down") + '">' + pct(s.chg, 2) + '</span></div>';
+
+  if (ac) o += accumDecisionHTML(ac);
 
   var ser = S.series && S.series.series ? S.series.series[t] : null;
   if (ser) {
@@ -378,11 +502,15 @@ function detailHTML(t) {
       return '<button data-detp="' + k + '" aria-pressed="' + (S.detPeriod === k) + '">' + k.toUpperCase() + "</button>";
     }).join("") + "</div>";
     o += lineChart(ser, DET_PERIODS[S.detPeriod]);
-    o += '<div class="chartlegend"><span><i style="background:currentColor"></i>ราคาปิด</span><span><i style="background:var(--gold)"></i>MA50</span><span><i style="background:var(--sideways)"></i>MA100</span><span><i style="background:var(--impr)"></i>MA200</span></div>';
+    o += '<div class="chartlegend"><span><i style="background:currentColor"></i>ราคาปิด</span><span><i style="background:var(--gold)"></i>MA50</span><span><i style="background:var(--sideways)"></i>MA100 (อ้างอิงสะสม)</span><span><i style="background:var(--impr)"></i>MA200</span></div>';
   }
 
-  o += '<div class="gauges">' + gauge("RSI (14)", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], s.rsi == null ? "" : s.rsi >= 70 ? "โมเมนตัมร้อนแรง" : s.rsi <= 30 ? "โมเมนตัมอ่อนแรง" : "โมเมนตัมปกติ") +
-    gauge("ADX (14)", s.adx, 0, 50, [[0, 20, "var(--sideways)"], [20, 50, "var(--strong)"]], s.adx == null ? "" : s.adx < 20 ? "ไม่มีเทรนด์ชัดเจน" : "มีเทรนด์ชัดเจน") + "</div>";
+  if (ac) {
+    o += accumKpiHTML(ac, ser);
+  } else {
+    o += '<div class="gauges">' + gauge("RSI (14)", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], s.rsi == null ? "" : s.rsi >= 70 ? "โมเมนตัมร้อนแรง" : s.rsi <= 30 ? "โมเมนตัมอ่อนแรง" : "โมเมนตัมปกติ") +
+      gauge("ADX (14)", s.adx, 0, 50, [[0, 20, "var(--sideways)"], [20, 50, "var(--strong)"]], s.adx == null ? "" : s.adx < 20 ? "ไม่มีเทรนด์ชัดเจน" : "มีเทรนด์ชัดเจน") + "</div>";
+  }
 
   if (meta.group && meta.group.rrg && s.rrg_by && s.rrg_by[meta.group.benchmark]) {
     var r = s.rrg_by[meta.group.benchmark];
@@ -408,6 +536,8 @@ function detailHTML(t) {
       (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : "") +
       '<div class="dmeta' + (age > 7 ? " old" : "") + '">ระดับวิเคราะห์ ' + fmtDate(d.asof) + (age > 7 ? " (เก่า " + age + " วัน)" : "") + '</div></div>';
   }
+
+  if (ac) o += accumSummaryHTML(ac);
 
   o += '<p class="foot">ข้อมูลราคาถึง ' + fmtDate(s.asof) + ' · ตัวชี้วัดทั้งหมดเป็นข้อมูลเชิงโครงสร้าง ไม่ใช่สัญญาณซื้อขาย</p>';
   return o;
@@ -503,7 +633,7 @@ function render() {
   if (S.screen === "overview") { setHeader("Market Structure", "ภาพรวมตลาด", false); main.innerHTML = banner + overviewHTML(); }
   else if (S.screen === "list") { setHeader("รายการที่สนใจ", null, false); main.innerHTML = banner + listHTML(); }
   else if (S.screen === "daily") { setHeader("รายวัน", "ตัวที่เล่น + SL/TP", false); main.innerHTML = banner + dailyHTML(); }
-  else if (S.screen === "accum") { setHeader("สะสมระยะยาว", "สัญญาณตาม MA 50/100/200", false); main.innerHTML = banner + accumHTML(); }
+  else if (S.screen === "accum") { setHeader("สะสมระยะยาว", "Trend ระยะยาว + จังหวะสะสม", false); main.innerHTML = banner + accumHTML(); }
   else if (S.screen === "detail") {
     var meta = findItemMeta(S.sel);
     setHeader(meta ? (meta.s || meta.t) : S.sel, null, true);
@@ -512,7 +642,7 @@ function render() {
 }
 
 document.addEventListener("click", function (e) {
-  var t = e.target.closest("[data-tab],[data-group],[data-gview],[data-tmode],[data-period],[data-detp],[data-open],[data-t],[data-goto-group],#help,#critBtn,[data-crit],#closeSheet,#backBtn,#themeBtn,#fsBtn,#sheet");
+  var t = e.target.closest("[data-tab],[data-group],[data-gview],[data-tmode],[data-period],[data-detp],[data-open],[data-t],[data-goto-group],[data-accum-glossary],#help,#critBtn,[data-crit],#closeSheet,#backBtn,#themeBtn,#fsBtn,#sheet");
   if (!t) return;
   if (t.id === "fsBtn") { S.fs = (S.fs % 3) + 1; applyFs(); store.set("mb.fs", S.fs); return; }
   if (t.id === "themeBtn") { toggleTheme(); return; }
@@ -521,6 +651,7 @@ document.addEventListener("click", function (e) {
   if (t.id === "help") { explainSheet(); return; }
   if (t.id === "critBtn") { criteriaSheet("status"); return; }
   if (t.dataset.crit) { criteriaSheet(t.dataset.crit); return; }
+  if (t.dataset.accumGlossary) { accumGlossarySheet(); return; }
   if (t.dataset.tab) { S.screen = t.dataset.tab; store.set("mb.screen", S.screen); render(); scrollTo(0, 0); return; }
   if (t.dataset.gotoGroup) { S.group = t.dataset.gotoGroup; S.screen = "list"; store.set("mb.screen", "list"); render(); scrollTo(0, 0); return; }
   if (t.dataset.group) { S.group = t.dataset.group; S.groupView = "rrg"; S.sel = null; store.set("mb.group", S.group); render(); return; }

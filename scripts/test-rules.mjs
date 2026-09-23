@@ -93,13 +93,56 @@ eq(lv4.rr, 3, "R:R หลักคำนวณจาก tp1");
 eq(lv4.rr2, 6, "R:R2 คำนวณจาก tp2 = (160-100)/(100-90) = 6");
 eq(Math.round(lv4.dTP2 * 10) / 10, 60, "ห่าง TP2 คำนวณถูก");
 
-// ---- accumSignal (สะสมระยะยาว: MA50/100/200) ----
-eq(Rules.accumSignal({vs200: -3, vs100: -1, vs50: 0.5}).key, "pause", "หลุด 200D -> หยุดสะสมชั่วคราว (ชนะทุกเงื่อนไข)");
-eq(Rules.accumSignal({vs200: 5, vs100: 1.5, vs50: 8}).key, "tier2", "แตะเส้น 100D ภายใน ±2% -> ไม้ใหญ่");
-eq(Rules.accumSignal({vs200: 5, vs100: 6, vs50: -1.8}).key, "tier1", "ไม่แตะ 100D แต่แตะ 50D -> ไม้ปกติ");
-eq(Rules.accumSignal({vs200: 20, vs100: 15, vs50: 10}).key, "none", "เทรนด์ปกติ ไม่แตะเส้นไหนเลย -> รอจังหวะ");
-eq(Rules.accumSignal({vs200: null}).key, "unknown", "ไม่มีข้อมูล vs200 -> unknown");
-eq(Rules.accumSignal({vs200: -0.1, vs100: 0.1, vs50: 0.1}).key, "pause", "หลุด 200D เพียงเล็กน้อยก็ยังหยุดสะสม (ไม่ตีความว่าแตะ)");
+// ---- getTrendStatus (แท็บสะสม: MA200=regime, MA50=เทรนด์ระยะกลาง — ไม่ใช้ MA100) ----
+eq(Rules.getTrendStatus({vs200: 5, vs50: 2}).key, "green", "เหนือ 200D และ 50D -> green");
+eq(Rules.getTrendStatus({vs200: 5, vs50: -1}).key, "yellow", "เหนือ 200D แต่ใต้ 50D -> yellow (ไม่ใช่ red เต็มๆ)");
+eq(Rules.getTrendStatus({vs200: -0.1, vs50: 5}).key, "red", "หลุด 200D แม้เพียงเล็กน้อย -> red (veto ทันที ไม่สนใจ 50D)");
+eq(Rules.getTrendStatus({vs200: null}).key, "unknown", "ไม่มีข้อมูล vs200 -> unknown");
+eq(Rules.getTrendStatus(null).key, "unknown", "ไม่มีข้อมูล -> unknown");
+
+// ---- getAccumulationZone (trend-agnostic, เทียบ MA100 ล้วนๆ) ----
+eq(Rules.getAccumulationZone({vs100: 9}).key, "A", "ห่าง MA100 > +8% -> A");
+eq(Rules.getAccumulationZone({vs100: 8}).key, "B", "ห่าง MA100 = +8% (ขอบเขต) -> B ไม่ใช่ A");
+eq(Rules.getAccumulationZone({vs100: 5}).key, "B", "+3% < ห่าง <= +8% -> B");
+eq(Rules.getAccumulationZone({vs100: 3}).key, "C", "ห่าง MA100 = +3% (ขอบเขต) -> C ไม่ใช่ B");
+eq(Rules.getAccumulationZone({vs100: 1}).key, "C", "-3% <= ห่าง <= +3% -> C");
+eq(Rules.getAccumulationZone({vs100: -3}).key, "C", "ห่าง MA100 = -3% (ขอบเขต) -> C ไม่ใช่ D");
+eq(Rules.getAccumulationZone({vs100: -5}).key, "D", "-8% <= ห่าง < -3% -> D");
+eq(Rules.getAccumulationZone({vs100: -8}).key, "D", "ห่าง MA100 = -8% (ขอบเขต) -> D ไม่ใช่ E");
+eq(Rules.getAccumulationZone({vs100: -9}).key, "E", "ห่าง MA100 < -8% -> E");
+eq(Rules.getAccumulationZone({vs100: null}).key, "unknown", "ไม่มีข้อมูล vs100 -> unknown");
+
+// ---- getADXStrength (ความแรง ไม่ใช่ทิศทาง) ----
+eq(Rules.getADXStrength(13.6).key, "weak", "ADX<20 -> weak");
+eq(Rules.getADXStrength(22).key, "emerging", "ADX 20-25 -> emerging");
+eq(Rules.getADXStrength(30).key, "clear", "ADX 25-40 -> clear");
+eq(Rules.getADXStrength(45).key, "strong", "ADX>=40 -> strong");
+eq(Rules.getADXStrength(null).key, "unknown", "ไม่มีข้อมูล -> unknown");
+
+// ---- getAccumulationAction (guardrail: เทรนด์ครอบโซนเสมอ) ----
+// CASE 1: price > MA50 > MA200, ห่าง MA100 = +5% (zone B), ADX 30 (clear) -> uptrend, สะสมตามแผน
+eq(Rules.getAccumulationAction(Rules.getTrendStatus({vs200: 8, vs50: 3}), Rules.getAccumulationZone({vs100: 5})).key, "normal", "CASE1: green+B -> สะสมตามแผน");
+// CASE 2: เทรนด์ยังแข็งแรง, ห่าง MA100 = +1% (zone C) -> เพิ่มน้ำหนักสะสม
+eq(Rules.getAccumulationAction(Rules.getTrendStatus({vs200: 8, vs50: 3}), Rules.getAccumulationZone({vs100: 1})).key, "increase", "CASE2: green+C -> เพิ่มน้ำหนักสะสม");
+// CASE 3: ราคายังเหนือ 200D แต่โครงสร้างระยะกลางอ่อนลง (ใต้ 50D) -> yellow ไม่ใช่ red เต็มๆ
+eq(Rules.getTrendStatus({vs200: 4, vs50: -2}).key, "yellow", "CASE3: เหนือ 200D แต่ใต้ 50D -> yellow ไม่ใช่ downtrend เต็มรูปแบบ");
+// CASE 4: price < MA100 แต่ยังเหนือ MA200 -> pullback ระมัดระวัง ไม่ใช่ downtrend อัตโนมัติ
+eq(Rules.getTrendStatus({vs200: 4, vs50: 2}).key, "green", "CASE4: ใต้ MA100 (ไม่ถูกใช้ตัดสินเทรนด์) แต่ยังเหนือ 200D/50D -> ยัง green");
+eq(Rules.getAccumulationZone({vs100: -5}).key, "D", "CASE4: ใต้ MA100 มากกว่า 3% -> zone D (สะสมแบบแบ่งไม้ ไม่ใช่ downtrend)");
+// CASE 5: ราคาต่ำกว่า MA200 อย่างมีนัยสำคัญ -> คำเตือนโครงสร้างเสีย
+eq(Rules.getTrendStatus({vs200: -10, vs50: -8}).key, "red", "CASE5: หลุด MA200 ชัดเจน -> red");
+eq(Rules.getAccumulationAction(Rules.getTrendStatus({vs200: -10, vs50: -8}), Rules.getAccumulationZone({vs100: -10})).key, "pause", "CASE5: red -> ชะลอ/รอความชัดเจน");
+// CASE 6: ADX=15 (อ่อน) กับโครงสร้าง MA เป็นบวก -> ยังคง uptrend ทิศทางไม่เปลี่ยนตาม ADX
+eq(Rules.getTrendStatus({vs200: 5, vs50: 2}).key, "green", "CASE6: MA บวกล้วน -> green แม้ ADX จะอ่อน");
+eq(Rules.getADXStrength(15).key, "weak", "CASE6: ADX=15 -> weak (บอกความแรง ไม่เปลี่ยนทิศทาง)");
+// CASE 7 (สำคัญที่สุด): Trend=RED ต้อง veto zone ที่ดูน่าดึงดูด (zone C ปกติจะบอก "เพิ่มน้ำหนักสะสม")
+eq(Rules.getAccumulationZone({vs100: 1}).key, "C", "CASE7: ห่าง MA100 +1% เดี่ยวๆ -> zone C");
+eq(Rules.getAccumulationAction(Rules.getTrendStatus({vs200: -5, vs50: 3}), Rules.getAccumulationZone({vs100: 1})).key, "pause",
+  "CASE7: Trend=RED ต้อง veto zone C เสมอ -> ชะลอ/รอความชัดเจน (ห้ามขึ้น เพิ่มน้ำหนักสะสม ขณะ RED เด็ดขาด)");
+// yellow guardrail: zone C ถูกลดระดับจาก "เพิ่มน้ำหนักสะสม" เป็น "สะสมแบบแบ่งไม้"
+eq(Rules.getAccumulationAction(Rules.getTrendStatus({vs200: 5, vs50: -2}), Rules.getAccumulationZone({vs100: 1})).key, "scaledIn",
+  "yellow+C -> สะสมแบบแบ่งไม้ (ลดระดับจาก เพิ่มน้ำหนักสะสม เพราะเทรนด์ระยะกลางอ่อน)");
+eq(Rules.getAccumulationAction(Rules.getTrendStatus({vs200: null}), Rules.getAccumulationZone({vs100: 1})).key, "unknown", "ไม่มีข้อมูลเทรนด์ -> unknown");
 
 console.log(`\n${pass} ผ่าน, ${fail} ไม่ผ่าน`);
 process.exit(fail ? 1 : 0);

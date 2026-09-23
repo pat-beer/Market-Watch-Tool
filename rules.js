@@ -26,24 +26,101 @@
     riskOff: {key: "risk-off", th: "Risk-Off", short: "ระวัง"},
   };
 
-  var ACCUM = {
-    pause: {key: "pause", th: "หลุด 200D — หยุดสะสมชั่วคราว", short: "หยุดชั่วคราว", rank: 0},
-    tier2: {key: "tier2", th: "แตะเส้น 100D — ไม้ใหญ่",       short: "ไม้ใหญ่ (100D)", rank: 1},
-    tier1: {key: "tier1", th: "แตะเส้น 50D — ไม้ปกติ",        short: "ไม้ปกติ (50D)",  rank: 2},
-    none:  {key: "none",  th: "เทรนด์ปกติ ยังไม่ถึงจุดเข้า",   short: "รอจังหวะ",       rank: 3},
-    unknown: {key: "unknown", th: "ไม่มีข้อมูลพอ", short: "–", rank: 4},
-  };
-  var ACCUM_TOL = 2; // % ระยะห่างจากเส้นที่นับว่า "แตะ"
+  /* ---- แท็บ "สะสม" (long-term accumulation, MA50/100/200) ----
+   * SSOT: engine, การ์ดหน้าหลัก, หน้า Detail และ Glossary ต้องอ่านค่าธรณี/ป้าย/สีจากที่นี่ที่เดียว
+   * แยกหน้าที่ตาม MA ชัดเจน — ห้ามให้ MA100 กลายเป็นอีกหนึ่งเสียงโหวตเทรนด์:
+   *   MA200 = regime ระยะยาว, MA50 = เทรนด์ระยะกลาง, MA100 = จุดอ้างอิงจังหวะสะสม, ADX = ความแรง (ไม่ใช่ทิศทาง) */
 
-  /** สัญญาณสะสมระยะยาวแบบ buy-the-dip-in-uptrend จาก MA50/100/200 (s = symbols[t])
-   *  เทรนด์ถือว่ายังไม่เสียตราบใดที่ราคาสูงกว่าเส้น 200D — หลุด 200D = หยุดสะสมชั่วคราว
-   *  ไม่หลุด: แตะ (±ACCUM_TOL%) เส้น 100D ก่อน (ไม้ใหญ่กว่า) แล้วค่อยเช็คเส้น 50D (ไม้ปกติ) */
-  function accumSignal(s) {
-    if (!s || s.vs200 == null) return ACCUM.unknown;
-    if (s.vs200 < 0) return ACCUM.pause;
-    if (s.vs100 != null && Math.abs(s.vs100) <= ACCUM_TOL) return ACCUM.tier2;
-    if (s.vs50 != null && Math.abs(s.vs50) <= ACCUM_TOL) return ACCUM.tier1;
-    return ACCUM.none;
+  var ACCUM_THRESHOLDS = {extended: 8, normal: 3, nearMA: -3, deepPullback: -8}; // % ห่างจาก MA100 (ยังเป็นเกณฑ์เริ่มต้น รอ backtest)
+  var ADX_THRESHOLDS = {weak: 20, emerging: 25, strong: 40};
+  // TODO: จองไว้สำหรับกลไก hysteresis/persistence ในอนาคต (เช่น ต้องอยู่ต่ำกว่า MA50 ติดกัน N วันก่อนเปลี่ยนเป็นเหลือง)
+  // ยังไม่ใช้งานจริงใน V1 — ตอนนี้ Trend/Zone เทียบธรณีแบบ flat ล้วนๆ ไม่มี tolerance/hysteresis ใดๆ
+  var TREND_TOLERANCE = 0;
+
+  var TREND_STATUS = {
+    green:   {key: "green",   th: "ขาขึ้น",         short: "ขาขึ้น",  arrow: "↗", rank: 0},
+    yellow:  {key: "yellow",  th: "อ่อนตัว",        short: "อ่อนตัว", arrow: "≈", rank: 1},
+    red:     {key: "red",     th: "ขาลง",           short: "ขาลง",   arrow: "↘", rank: 2},
+    unknown: {key: "unknown", th: "ไม่มีข้อมูลพอ", short: "–",       arrow: "",  rank: 3},
+  };
+
+  var ACCUM_ZONE = {
+    A: {key: "A", th: "สูงกว่าโซนสะสมมาก"},
+    B: {key: "B", th: "Trend ปกติ"},
+    C: {key: "C", th: "เข้าใกล้ MA100"},
+    D: {key: "D", th: "หลุด MA100"},
+    E: {key: "E", th: "ระวังแนวโน้มเปลี่ยน"},
+    unknown: {key: "unknown", th: "ไม่มีข้อมูลพอ"},
+  };
+
+  var ADX_STRENGTH = {
+    weak:     {key: "weak",     th: "อ่อน / Sideway"},
+    emerging: {key: "emerging", th: "เริ่มมีแนวโน้ม"},
+    clear:    {key: "clear",    th: "ชัดเจน"},
+    strong:   {key: "strong",   th: "แข็งแรง"},
+    unknown:  {key: "unknown",  th: "–"},
+  };
+
+  var ACCUM_ACTION = {
+    wait:     {key: "wait",     th: "รอจังหวะย่อ",         rank: 0},
+    normal:   {key: "normal",   th: "สะสมตามแผน",          rank: 1},
+    increase: {key: "increase", th: "เพิ่มน้ำหนักสะสม",     rank: 2},
+    scaledIn: {key: "scaledIn", th: "สะสมแบบแบ่งไม้",       rank: 1},
+    pause:    {key: "pause",    th: "ชะลอ / รอความชัดเจน", rank: 3},
+    unknown:  {key: "unknown",  th: "–",                    rank: 4},
+  };
+
+  // โซน A-E -> action พื้นฐาน (ใช้ตรงๆ เมื่อ Trend=GREEN)
+  var ZONE_BASE_ACTION = {A: ACCUM_ACTION.wait, B: ACCUM_ACTION.normal, C: ACCUM_ACTION.increase, D: ACCUM_ACTION.scaledIn, E: ACCUM_ACTION.pause};
+  // โซน A-E -> action เมื่อ Trend=YELLOW (ลดระดับ C จาก "เพิ่มน้ำหนัก" เป็น "แบ่งไม้" เพราะเทรนด์ระยะกลางเริ่มอ่อน)
+  var ZONE_YELLOW_ACTION = {A: ACCUM_ACTION.wait, B: ACCUM_ACTION.normal, C: ACCUM_ACTION.scaledIn, D: ACCUM_ACTION.scaledIn, E: ACCUM_ACTION.pause};
+
+  /** ระยะห่าง % ของราคาจากเส้นค่าเฉลี่ยใดๆ: (price/ma - 1) * 100 */
+  function getMADistance(p, ma) {
+    if (p == null || ma == null || !ma) return null;
+    return (p / ma - 1) * 100;
+  }
+
+  /** สถานะเทรนด์ระดับสูง (s = symbols[t]) — ใช้ MA200 (regime) + MA50 (เทรนด์ระยะกลาง) เท่านั้น ไม่ใช้ MA100
+   *   GREEN:  price > MA200 AND price > MA50
+   *   YELLOW: price > MA200 AND price <= MA50
+   *   RED:    price <= MA200 (หลุด 200D = veto ทันที ไม่สนใจ MA50/MA100) */
+  function getTrendStatus(s) {
+    if (!s || s.vs200 == null) return TREND_STATUS.unknown;
+    if (s.vs200 <= 0) return TREND_STATUS.red;
+    if (s.vs50 != null && s.vs50 <= 0) return TREND_STATUS.yellow;
+    return TREND_STATUS.green;
+  }
+
+  /** โซนสะสมตามระยะห่างจาก MA100 ล้วนๆ (trend-agnostic — ไม่ดูเทรนด์ตรงนี้) */
+  function getAccumulationZone(s) {
+    if (!s || s.vs100 == null) return ACCUM_ZONE.unknown;
+    var d = s.vs100;
+    if (d > ACCUM_THRESHOLDS.extended) return ACCUM_ZONE.A;
+    if (d > ACCUM_THRESHOLDS.normal) return ACCUM_ZONE.B;
+    if (d >= ACCUM_THRESHOLDS.nearMA) return ACCUM_ZONE.C;
+    if (d >= ACCUM_THRESHOLDS.deepPullback) return ACCUM_ZONE.D;
+    return ACCUM_ZONE.E;
+  }
+
+  /** ระดับความแรงเทรนด์จาก ADX — บอกความแรง ไม่บอกทิศทาง (ทิศทางมาจาก getTrendStatus) */
+  function getADXStrength(adx) {
+    if (adx == null) return ADX_STRENGTH.unknown;
+    if (adx < ADX_THRESHOLDS.weak) return ADX_STRENGTH.weak;
+    if (adx < ADX_THRESHOLDS.emerging) return ADX_STRENGTH.emerging;
+    if (adx < ADX_THRESHOLDS.strong) return ADX_STRENGTH.clear;
+    return ADX_STRENGTH.strong;
+  }
+
+  /** Action สุดท้าย = โซน (จังหวะ) ถูก "ครอบ" ด้วยเทรนด์ (regime) เสมอ — MA200 มีสิทธิ์ veto
+   *  GREEN  : ใช้ action พื้นฐานของโซนตรงๆ (A-E)
+   *  YELLOW : ลดระดับตาม ZONE_YELLOW_ACTION (โซน C ไม่ใช่ "เพิ่มน้ำหนัก" แล้ว)
+   *  RED    : ทุกโซน -> "ชะลอ / รอความชัดเจน" เสมอ ไม่ว่าโซนจะน่าดึงดูดแค่ไหน */
+  function getAccumulationAction(trend, zone) {
+    if (!trend || !zone || trend.key === "unknown" || zone.key === "unknown") return ACCUM_ACTION.unknown;
+    if (trend.key === "red") return ACCUM_ACTION.pause;
+    if (trend.key === "yellow") return ZONE_YELLOW_ACTION[zone.key] || ACCUM_ACTION.unknown;
+    return ZONE_BASE_ACTION[zone.key] || ACCUM_ACTION.unknown;
   }
 
   /** สถานะของสินทรัพย์หนึ่งตัว จากตัวเลขใน prices.json (s = symbols[t]) */
@@ -159,14 +236,25 @@
   var Rules = {
     STATUS: STATUS,
     REGIME: REGIME,
-    ACCUM: ACCUM,
     statusOf: statusOf,
     trendOf: trendOf,
     riskBasket: riskBasket,
     regimeOf: regimeOf,
     groupSummary: groupSummary,
     levels: levels,
-    accumSignal: accumSignal,
+    // แท็บ "สะสม" — SSOT ของ config/labels ต้องอ่านผ่าน Rules เท่านั้น (ดูหมายเหตุ SSOT เหนือ getTrendStatus)
+    ACCUM_THRESHOLDS: ACCUM_THRESHOLDS,
+    ADX_THRESHOLDS: ADX_THRESHOLDS,
+    TREND_TOLERANCE: TREND_TOLERANCE,
+    TREND_STATUS: TREND_STATUS,
+    ACCUM_ZONE: ACCUM_ZONE,
+    ADX_STRENGTH: ADX_STRENGTH,
+    ACCUM_ACTION: ACCUM_ACTION,
+    getMADistance: getMADistance,
+    getTrendStatus: getTrendStatus,
+    getAccumulationZone: getAccumulationZone,
+    getADXStrength: getADXStrength,
+    getAccumulationAction: getAccumulationAction,
   };
 
   if (typeof module !== "undefined" && module.exports) {

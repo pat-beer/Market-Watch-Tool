@@ -391,22 +391,22 @@ function accumKpiHTML(c, ser) {
   var m50 = ser ? maVal(ser.m50) : null, m100 = ser ? maVal(ser.m100) : null, m200 = ser ? maVal(ser.m200) : null;
   var rows = [
     {lbl: "MA50", v: m50, d: s.vs50, hit: false},
-    {lbl: "MA100 (จุดอ้างอิงสะสม)", v: m100, d: s.vs100, hit: c.zone.key === "C"},
+    {lbl: "MA100 ★", v: m100, d: s.vs100, hit: c.zone.key === "C"},
     {lbl: "MA200", v: m200, d: s.vs200, hit: false},
   ];
-  var o = '<div class="malines">' + rows.map(function (r) {
+  var o = '<div class="malines compact">' + rows.map(function (r) {
     return '<div class="maline' + (r.hit ? " hit" : "") + '"><span>' + r.lbl + '</span><b class="num">' + (r.v == null ? "–" : price(r.v)) + '</b>' +
-      '<span class="num ' + (r.d >= 0 ? "up" : "down") + '" style="display:block;font-size:.7rem">' + (r.d == null ? "" : pct(r.d)) + "</span></div>";
+      '<span class="num ' + (r.d >= 0 ? "up" : "down") + '" style="display:block;font-size:.68rem">' + (r.d == null ? "" : pct(r.d)) + "</span></div>";
   }).join("") + "</div>";
-  o += '<div class="gauges" style="margin-top:.6rem">' +
-    gauge("RSI (14)", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], "ตัวชี้วัดเสริม — ไม่ใช่สัญญาณซื้อ/ขายอัตโนมัติ") +
-    gauge("ADX (14)", s.adx, 0, 50, [[0, 20, "var(--sideways)"], [20, 50, "var(--strong)"]], "ความแรง " + c.adxS.th) + "</div>";
-  if (s.macd != null && s.macdSignal != null) {
-    o += '<div class="viewbox" style="margin-top:.6rem"><span class="lbl">MACD (12,26,9)</span><br>' +
-      '<b class="num ' + (s.macd >= s.macdSignal ? "up" : "down") + '">' + s.macd.toFixed(2) + '</b>' +
-      '<span class="num" style="color:var(--muted);font-size:.8rem"> vs Signal ' + s.macdSignal.toFixed(2) + '</span>' +
-      '<div style="font-size:.76rem;color:var(--muted);margin-top:.2rem">' + (s.macd >= s.macdSignal ? "MACD เหนือ Signal — สนับสนุนโมเมนตัมบวก" : "MACD ต่ำกว่า Signal — สนับสนุนโมเมนตัมอ่อนลง") + " (หลักฐานสนับสนุน ไม่ override MA)</div></div>";
+  var macdOk = s.macd != null && s.macdSignal != null;
+  o += '<div class="gauges compact' + (macdOk ? " g3" : "") + '">' +
+    gauge("RSI", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], "เสริม ไม่ใช่สัญญาณ") +
+    gauge("ADX", s.adx, 0, 50, [[0, 20, "var(--sideways)"], [20, 50, "var(--strong)"]], c.adxS.th);
+  if (macdOk) {
+    o += '<div class="gauge"><small>MACD</small><b class="num ' + (s.macd >= s.macdSignal ? "up" : "down") + '">' + s.macd.toFixed(2) + '</b>' +
+      '<div class="rng"><span>Signal ' + s.macdSignal.toFixed(2) + '</span></div></div>';
   }
+  o += "</div>";
   return o;
 }
 function accumSummaryHTML(c) {
@@ -512,29 +512,33 @@ function detailHTML(t) {
       gauge("ADX (14)", s.adx, 0, 50, [[0, 20, "var(--sideways)"], [20, 50, "var(--strong)"]], s.adx == null ? "" : s.adx < 20 ? "ไม่มีเทรนด์ชัดเจน" : "มีเทรนด์ชัดเจน") + "</div>";
   }
 
-  if (meta.group && meta.group.rrg && s.rrg_by && s.rrg_by[meta.group.benchmark]) {
-    var r = s.rrg_by[meta.group.benchmark];
-    o += '<div class="viewbox"><span class="lbl">ตำแหน่งใน RRG (เทียบ ' + esc(meta.group.benchmark) + ')</span><br>' +
-      '<span class="chip"><i style="background:' + Q[r.quad].hex + '"></i>' + Q[r.quad].th + '</span> RS-Ratio ' + r.x.toFixed(2) + ' · RS-Momentum ' + r.y.toFixed(2) + '</div>';
-  }
+  // RRG / Elliott Wave / มุมมองสัปดาห์ / แผนเทรด SL-TP เป็นข้อมูลฝั่งเทรดระยะสั้น
+  // ไม่เกี่ยวกับการตัดสินใจสะสมระยะยาว — ซ่อนไว้เมื่อเปิดจากแท็บ "สะสม" เพื่อให้หน้าจอกระชับ
+  if (!ac) {
+    if (meta.group && meta.group.rrg && s.rrg_by && s.rrg_by[meta.group.benchmark]) {
+      var r = s.rrg_by[meta.group.benchmark];
+      o += '<div class="viewbox"><span class="lbl">ตำแหน่งใน RRG (เทียบ ' + esc(meta.group.benchmark) + ')</span><br>' +
+        '<span class="chip"><i style="background:' + Q[r.quad].hex + '"></i>' + Q[r.quad].th + '</span> RS-Ratio ' + r.x.toFixed(2) + ' · RS-Momentum ' + r.y.toFixed(2) + '</div>';
+    }
 
-  var wv = S.an && S.an.waves ? S.an.waves[t] : null;
-  o += waveBox(wv);
+    var wv = S.an && S.an.waves ? S.an.waves[t] : null;
+    o += waveBox(wv);
 
-  var view = S.an && S.an.weekly && S.an.weekly.views ? S.an.weekly.views[t] : null;
-  if (view) {
-    var v = VIEW[view.view || view];
-    o += '<div class="viewbox"><span class="lbl">มุมมองสัปดาห์ (Claude)</span><br><b class="' + (v ? v.cl : "") + '">' + (v ? v.ic + " " + v.th : "–") + '</b>' + (view.note ? " — " + esc(view.note) : "") + "</div>";
-  }
+    var view = S.an && S.an.weekly && S.an.weekly.views ? S.an.weekly.views[t] : null;
+    if (view) {
+      var v = VIEW[view.view || view];
+      o += '<div class="viewbox"><span class="lbl">มุมมองสัปดาห์ (Claude)</span><br><b class="' + (v ? v.cl : "") + '">' + (v ? v.ic + " " + v.th : "–") + '</b>' + (view.note ? " — " + esc(view.note) : "") + "</div>";
+    }
 
-  var d = S.an && S.an.daily ? S.an.daily[t] : null;
-  var L = Rules.levels(d, s.last);
-  if (L) {
-    var age = d.asof ? daysAgo(d.asof) : null;
-    o += '<div class="sectionhd"><h2>แผนเทรด (SL/TP)</h2></div><div class="plan">' + levelBar(d, L, s.last) +
-      '<div class="dstats num">ห่าง SL <b>' + L.dSL.toFixed(1) + '%</b> · ห่าง TP <b>' + L.dTP.toFixed(1) + '%</b> · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + '</b></div>' +
-      (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : "") +
-      '<div class="dmeta' + (age > 7 ? " old" : "") + '">ระดับวิเคราะห์ ' + fmtDate(d.asof) + (age > 7 ? " (เก่า " + age + " วัน)" : "") + '</div></div>';
+    var d = S.an && S.an.daily ? S.an.daily[t] : null;
+    var L = Rules.levels(d, s.last);
+    if (L) {
+      var age = d.asof ? daysAgo(d.asof) : null;
+      o += '<div class="sectionhd"><h2>แผนเทรด (SL/TP)</h2></div><div class="plan">' + levelBar(d, L, s.last) +
+        '<div class="dstats num">ห่าง SL <b>' + L.dSL.toFixed(1) + '%</b> · ห่าง TP <b>' + L.dTP.toFixed(1) + '%</b> · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + '</b></div>' +
+        (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : "") +
+        '<div class="dmeta' + (age > 7 ? " old" : "") + '">ระดับวิเคราะห์ ' + fmtDate(d.asof) + (age > 7 ? " (เก่า " + age + " วัน)" : "") + '</div></div>';
+    }
   }
 
   if (ac) o += accumSummaryHTML(ac);

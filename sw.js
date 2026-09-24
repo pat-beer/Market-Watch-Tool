@@ -1,12 +1,12 @@
 // Service worker: shell = cache-first, ไฟล์ข้อมูล = network-first (ออฟไลน์ใช้ตัวล่าสุดที่เคยโหลด)
-const VERSION = "v3";
+const VERSION = "v4";
 const CACHE = "market-board-" + VERSION;
-const SHELL = ["./", "index.html", "manifest.json", "watchlist.json",
+const SHELL = ["./", "index.html", "manifest.json?v=2", "watchlist.json",
   "style.css", "rules.js", "app.js",
-  "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
+  "icon-192.png?v=2", "icon-512.png?v=2", "icon-maskable-512.png?v=2", "apple-touch-icon.png?v=2"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {

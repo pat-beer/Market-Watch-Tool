@@ -185,10 +185,10 @@ svg.rrg text{font-family:Inter,Kanit,sans-serif}
 .lvtrack .seg-r{background:color-mix(in srgb, var(--weak) 32%, transparent)}
 .lvtrack .seg-g{background:color-mix(in srgb, var(--strong) 32%, transparent)}
 .lvnow{position:absolute;left:-.2rem;width:.8rem;height:.8rem;border-radius:50%;background:var(--ink);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--ink);transform:translateY(50%);z-index:2}
-.lvrow{position:absolute;left:1.1rem;right:0;display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--muted);transform:translateY(50%);white-space:nowrap}
+.lvrow{position:absolute;left:1.1rem;right:0;display:flex;align-items:center;gap:.35rem;font-size:.76rem;color:var(--muted);transform:translateY(50%);white-space:nowrap}
 .lvrow i{width:.55rem;height:2px;background:var(--faint);flex:none}
 .lvrow b{font-weight:700;color:var(--ink);min-width:2.4em}
-.lvrow .num{color:var(--muted)}
+.lvrow .num{color:var(--muted);margin-left:auto;font-weight:600}
 .lvrow.sl b{color:var(--weak)} .lvrow.sl i{background:var(--weak)}
 .lvrow.tp b{color:var(--strong)} .lvrow.tp i{background:var(--strong)}
 .lvrow.tp2{opacity:.8}

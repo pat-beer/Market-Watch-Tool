@@ -467,7 +467,7 @@ function levelBar(d, L, last) {
   var rows = row("sl", "SL", d.sl, pos(d.sl)) + row("entry", "Entry", L.entry, eB) + row("tp tp1", "TP1", L.tp1, pos(L.tp1));
   if (L.tp2 != null) rows += row("tp tp2", "TP2", L.tp2, pos(L.tp2));
   return '<div class="lv"><div class="lvbox">' +
-    '<div class="lvtrack"><span class="' + bottomCls + '" style="height:' + eB.toFixed(2) + '%"></span>' +
+    '<div class="lvtrack"><span class="' + bottomCls + '" style="height:' + eB.toFixed(2) + '%;bottom:0"></span>' +
     '<span class="' + topCls + '" style="height:' + (100 - eB).toFixed(2) + '%;bottom:' + eB.toFixed(2) + '%"></span></div>' +
     '<span class="lvnow" style="bottom:' + pos(last).toFixed(2) + '%"></span>' + rows + "</div></div>";
 }

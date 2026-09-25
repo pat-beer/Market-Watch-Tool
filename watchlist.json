@@ -346,6 +346,11 @@
    "t": "ACWI",
    "th": "หุ้นโลก",
    "en": "All-Country World"
+  },
+  {
+   "t": "^SETHD.BK",
+   "th": "หุ้นปันผลสูงไทย (SETHD)",
+   "en": "SET High Dividend 30"
   }
  ]
 }

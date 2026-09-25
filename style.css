@@ -177,22 +177,26 @@ svg.rrg text{font-family:Inter,Kanit,sans-serif}
 .alert{display:inline-block;font-size:.72rem;font-weight:700;border-radius:6px;padding:.1rem .5rem;margin-top:.45rem;color:#fff}
 .alert.bad{background:var(--weak)} .alert.good{background:var(--strong)} .alert.warn{background:var(--caution)} .alert.note{background:var(--impr)} .alert.gold{background:var(--gold);color:var(--gold-ink)}
 .spark{width:100%;height:2.4rem;display:block;margin:.4rem 0 .2rem}
-/* แผนเทรด SL/TP — แถบแนวตั้งกะทัดรัด (ไม่ใช้พื้นที่กว้าง ไม่ต้องเลื่อนดู) */
+/* แผนเทรด SL/TP — แถบแนวตั้งกะทัดรัด: ป้ายชิดแท่งเสมอ (ไม่กางเต็มการ์ด)
+   ที่ว่างฝั่งขวาเอาไปแสดงเส้นราคาย่อสูงเท่าแท่งแทน (ถ้ามีข้อมูล) */
 .lv{margin:.6rem 0 .1rem}
-.lvbox{position:relative;height:6.6rem}
+.lvbox{display:flex;align-items:stretch;gap:.7rem}
+.lvladder{position:relative;height:6.6rem;flex:0 0 9.6rem}
 .lvtrack{position:absolute;left:0;top:0;bottom:0;width:.4rem;border-radius:99px;overflow:hidden;background:var(--wash2)}
 .lvtrack span{position:absolute;left:0;right:0}
 .lvtrack .seg-r{background:color-mix(in srgb, var(--weak) 32%, transparent)}
 .lvtrack .seg-g{background:color-mix(in srgb, var(--strong) 32%, transparent)}
 .lvnow{position:absolute;left:-.2rem;width:.8rem;height:.8rem;border-radius:50%;background:var(--ink);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--ink);transform:translateY(50%);z-index:2}
-.lvrow{position:absolute;left:1.1rem;right:0;display:flex;align-items:center;gap:.35rem;font-size:.76rem;color:var(--muted);transform:translateY(50%);white-space:nowrap}
-.lvrow i{width:.55rem;height:2px;background:var(--faint);flex:none}
-.lvrow b{font-weight:700;color:var(--ink);min-width:2.4em}
+.lvrow{position:absolute;left:1.1rem;right:0;display:flex;align-items:center;gap:.3rem;font-size:.72rem;color:var(--muted);transform:translateY(50%);white-space:nowrap}
+.lvrow i{width:.5rem;height:2px;background:var(--faint);flex:none}
+.lvrow b{font-weight:700;color:var(--ink)}
 .lvrow .num{color:var(--muted);margin-left:auto;font-weight:600}
 .lvrow.sl b{color:var(--weak)} .lvrow.sl i{background:var(--weak)}
 .lvrow.tp b{color:var(--strong)} .lvrow.tp i{background:var(--strong)}
 .lvrow.tp2{opacity:.8}
 .lvrow.entry i{background:var(--ink);height:2px}
+.lvsparkbox{flex:1;min-width:0;height:6.6rem;border-left:1px solid var(--line);padding-left:.6rem;display:flex}
+.sparktall{width:100%;height:100%;display:block}
 .dstats{font-size:.8rem;color:var(--muted);margin-top:.4rem}
 .dstats b{color:var(--ink);font-weight:700}
 .tags{margin-top:.45rem}

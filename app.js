@@ -282,12 +282,13 @@ function dailyHTML() {
     o += '<article class="dcard ' + (L && L.st ? L.st.key : "") + '"><div class="dtop"><div class="id"><b>' + esc(it.s || it.t) + '</b><span>' + esc(it.th) + (d && d.bias ? " · " + (d.bias === "short" ? "Short" : "Long") : "") + '</span></div>' +
       '<div class="pr"><b class="num">' + price(s.last) + '</b><span class="num ' + (s.chg >= 0 ? "up" : "down") + '">' + pct(s.chg, 2) + "</span></div></div>";
     if (L && L.st) o += '<span class="alert ' + L.st.key + '">' + L.st.th + "</span>";
-    o += spark(s.spark);
     if (L) {
       var tp2Stat = L.tp2 != null ? ' · ห่าง TP2 <b>' + L.dTP2.toFixed(1) + '%</b>' : "";
       var rr2Stat = L.rr2 != null ? " (1:" + L.rr2.toFixed(1) + " ที่ TP2)" : "";
-      o += levelBar(d, L, s.last) + '<div class="dstats num">ห่าง SL <b>' + L.dSL.toFixed(1) + '%</b> · ห่าง TP1 <b>' + L.dTP.toFixed(1) + '%</b>' + tp2Stat + ' · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + rr2Stat + "</b></div>";
+      // เส้นราคาย่อไปอยู่ในพื้นที่ว่างขวาแท่ง SL/TP แทนที่จะแยกเป็นแถบบางๆ ด้านบน (สูงกว่าเดิม เห็นความชันชัดขึ้น)
+      o += levelBar(d, L, s.last, s.spark) + '<div class="dstats num">ห่าง SL <b>' + L.dSL.toFixed(1) + '%</b> · ห่าง TP1 <b>' + L.dTP.toFixed(1) + '%</b>' + tp2Stat + ' · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + rr2Stat + "</b></div>";
     } else {
+      o += spark(s.spark);
       o += '<p class="empty">ยังไม่มี SL/TP — สั่ง Claude วิเคราะห์จาก desktop</p>';
     }
     o += '<div class="tags">' + rtag + adxTag + t200 + "</div>";
@@ -446,16 +447,30 @@ function accumGlossarySheet() {
   o += '<div class="banner" style="margin-top:.6rem">เกณฑ์นี้เป็นแนวทางการวิเคราะห์ของเราเอง เพื่อช่วยการสะสมระยะยาว (RMF/Long-term Growth) ไม่ใช่สัญญาณซื้อขาย</div>';
   openSheet(o);
 }
+function sparkPts(arr, W, H, pad) {
+  var mn = Math.min.apply(null, arr), mx = Math.max.apply(null, arr), rng = mx - mn || 1;
+  return arr.map(function (v, i) { return (i / (arr.length - 1) * W).toFixed(1) + "," + (H - pad - (v - mn) / rng * (H - 2 * pad)).toFixed(1); }).join(" ");
+}
 function spark(arr) {
   if (!arr || arr.length < 2) return "";
-  var mn = Math.min.apply(null, arr), mx = Math.max.apply(null, arr), W = 300, H = 40, rng = mx - mn || 1;
-  var p = arr.map(function (v, i) { return (i / (arr.length - 1) * W).toFixed(1) + "," + (H - 3 - (v - mn) / rng * (H - 6)).toFixed(1); }).join(" ");
-  var up = arr[arr.length - 1] >= arr[0];
-  return '<svg class="spark" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + p + '" fill="none" stroke="' + (up ? "var(--strong)" : "var(--weak)") + '" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>';
+  var W = 300, H = 40, up = arr[arr.length - 1] >= arr[0];
+  return '<svg class="spark" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + sparkPts(arr, W, H, 3) + '" fill="none" stroke="' + (up ? "var(--strong)" : "var(--weak)") + '" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>';
+}
+/** เส้นราคาย่อในแถบ SL/TP (สูงเท่าแถบ ~106px) — ให้ความสูงพอมองเห็นความชันได้จริง
+ *  ต่างจาก spark() เดิมที่บางเกินจนไม่เห็นทิศทาง เพราะสูงแค่ 2.4rem */
+function sparkTall(arr, H) {
+  if (!arr || arr.length < 2) return "";
+  H = H || 106;
+  var W = 210, pad = 8, up = arr[arr.length - 1] >= arr[0], color = up ? "var(--strong)" : "var(--weak)";
+  var pts = sparkPts(arr, W, H, pad), last = pts.split(" ").pop().split(",");
+  return '<svg class="sparktall" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+    '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3" fill="' + color + '"/></svg>';
 }
 /** แผนเทรด SL/TP — แถบแนวตั้งกะทัดรัด: SL ล่าง, Entry, TP1/TP2 บน (short จะกลับด้าน)
- *  จุดเขียว = โซนกำไรของฝั่งที่เข้า, จุดแดง = โซนความเสี่ยง — ใช้สีล้วนๆ ไม่ใส่ label ซ้อน */
-function levelBar(d, L, last) {
+ *  จุดเขียว = โซนกำไรของฝั่งที่เข้า, จุดแดง = โซนความเสี่ยง — ใช้สีล้วนๆ ไม่ใส่ label ซ้อน
+ *  sparkArr (ถ้ามี): ใช้พื้นที่ว่างขวาแท่งแสดงเส้นราคาย่อสูงเท่าแท่ง แทนที่จะปล่อยว่าง */
+function levelBar(d, L, last, sparkArr) {
   var pts = [d.sl, L.tp1]; if (L.tp2 != null) pts.push(L.tp2);
   var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts), rng = hi - lo || 1;
   function pos(p) { return Math.max(0, Math.min(1, (p - lo) / rng)) * 100; }
@@ -466,10 +481,11 @@ function levelBar(d, L, last) {
   }
   var rows = row("sl", "SL", d.sl, pos(d.sl)) + row("entry", "Entry", L.entry, eB) + row("tp tp1", "TP1", L.tp1, pos(L.tp1));
   if (L.tp2 != null) rows += row("tp tp2", "TP2", L.tp2, pos(L.tp2));
-  return '<div class="lv"><div class="lvbox">' +
-    '<div class="lvtrack"><span class="' + bottomCls + '" style="height:' + eB.toFixed(2) + '%;bottom:0"></span>' +
+  var ladder = '<div class="lvladder"><div class="lvtrack"><span class="' + bottomCls + '" style="height:' + eB.toFixed(2) + '%;bottom:0"></span>' +
     '<span class="' + topCls + '" style="height:' + (100 - eB).toFixed(2) + '%;bottom:' + eB.toFixed(2) + '%"></span></div>' +
-    '<span class="lvnow" style="bottom:' + pos(last).toFixed(2) + '%"></span>' + rows + "</div></div>";
+    '<span class="lvnow" style="bottom:' + pos(last).toFixed(2) + '%"></span>' + rows + "</div>";
+  var sparkHtml = sparkArr && sparkArr.length > 1 ? '<div class="lvsparkbox">' + sparkTall(sparkArr) + "</div>" : "";
+  return '<div class="lv"><div class="lvbox">' + ladder + sparkHtml + "</div></div>";
 }
 
 /* ================= DETAIL (เต็มจอ) ================= */

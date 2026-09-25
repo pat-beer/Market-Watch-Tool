@@ -7,6 +7,7 @@
   --sideways:#6B7280; --sideways-bg:#EEF0F3;
   --weak:#C62F3B; --weak-bg:#FDECEE;
   --lead:#0E8A4F; --weaken:#C98A0B; --lag:#C62F3B; --impr:#2563A8;
+  --ma50:#1B7A3D; --ma100:#B8860B; --ma200:#D9720F;
   --shadow:0 10px 30px rgba(18,33,59,.12);
 }
 :root[data-theme="dark"]{
@@ -17,6 +18,7 @@
   --sideways:#9AA4B8; --sideways-bg:#1C2331;
   --weak:#F0616F; --weak-bg:#301017;
   --lead:#38C787; --weaken:#E3B341; --lag:#F0616F; --impr:#5B9BE0;
+  --ma50:#3FBE73; --ma100:#E3B341; --ma200:#F0924A;
   --shadow:0 10px 30px rgba(0,0,0,.45);
 }
 *{box-sizing:border-box}
@@ -175,15 +177,22 @@ svg.rrg text{font-family:Inter,Kanit,sans-serif}
 .alert{display:inline-block;font-size:.72rem;font-weight:700;border-radius:6px;padding:.1rem .5rem;margin-top:.45rem;color:#fff}
 .alert.bad{background:var(--weak)} .alert.good{background:var(--strong)} .alert.warn{background:var(--caution)} .alert.note{background:var(--impr)} .alert.gold{background:var(--gold);color:var(--gold-ink)}
 .spark{width:100%;height:2.4rem;display:block;margin:.4rem 0 .2rem}
-.lv{margin:.55rem 0 .15rem}
-.bar{position:relative;height:.5rem;border-radius:99px;overflow:hidden;display:flex}
-.bar .seg-r{background:color-mix(in srgb, var(--weak) 28%, transparent)} .bar .seg-g{background:color-mix(in srgb, var(--strong) 28%, transparent)}
-.mk{position:absolute;top:-.2rem;width:.9rem;height:.9rem;border-radius:50%;background:var(--ink);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--ink);transform:translateX(-50%)}
-.et{position:absolute;top:-.15rem;width:2px;height:.8rem;background:var(--ink);opacity:.45}
-.tp2mk{position:absolute;top:-.15rem;width:2px;height:.8rem;background:var(--strong);opacity:.55;border-left:2px dashed var(--strong)}
-.lvl{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:.35rem;gap:.4rem}
-.lvl .sl{color:var(--weak);font-weight:700} .lvl .tp{color:var(--strong);font-weight:700}
-.lvl .tp2{opacity:.75}
+/* แผนเทรด SL/TP — แถบแนวตั้งกะทัดรัด (ไม่ใช้พื้นที่กว้าง ไม่ต้องเลื่อนดู) */
+.lv{margin:.6rem 0 .1rem}
+.lvbox{position:relative;height:6.6rem}
+.lvtrack{position:absolute;left:0;top:0;bottom:0;width:.4rem;border-radius:99px;overflow:hidden;background:var(--wash2)}
+.lvtrack span{position:absolute;left:0;right:0}
+.lvtrack .seg-r{background:color-mix(in srgb, var(--weak) 32%, transparent)}
+.lvtrack .seg-g{background:color-mix(in srgb, var(--strong) 32%, transparent)}
+.lvnow{position:absolute;left:-.2rem;width:.8rem;height:.8rem;border-radius:50%;background:var(--ink);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--ink);transform:translateY(50%);z-index:2}
+.lvrow{position:absolute;left:1.1rem;right:0;display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--muted);transform:translateY(50%);white-space:nowrap}
+.lvrow i{width:.55rem;height:2px;background:var(--faint);flex:none}
+.lvrow b{font-weight:700;color:var(--ink);min-width:2.4em}
+.lvrow .num{color:var(--muted)}
+.lvrow.sl b{color:var(--weak)} .lvrow.sl i{background:var(--weak)}
+.lvrow.tp b{color:var(--strong)} .lvrow.tp i{background:var(--strong)}
+.lvrow.tp2{opacity:.8}
+.lvrow.entry i{background:var(--ink);height:2px}
 .dstats{font-size:.8rem;color:var(--muted);margin-top:.4rem}
 .dstats b{color:var(--ink);font-weight:700}
 .tags{margin-top:.45rem}

@@ -453,22 +453,23 @@ function spark(arr) {
   var up = arr[arr.length - 1] >= arr[0];
   return '<svg class="spark" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + p + '" fill="none" stroke="' + (up ? "var(--strong)" : "var(--weak)") + '" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>';
 }
+/** แผนเทรด SL/TP — แถบแนวตั้งกะทัดรัด: SL ล่าง, Entry, TP1/TP2 บน (short จะกลับด้าน)
+ *  จุดเขียว = โซนกำไรของฝั่งที่เข้า, จุดแดง = โซนความเสี่ยง — ใช้สีล้วนๆ ไม่ใส่ label ซ้อน */
 function levelBar(d, L, last) {
   var pts = [d.sl, L.tp1]; if (L.tp2 != null) pts.push(L.tp2);
   var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts), rng = hi - lo || 1;
   function pos(p) { return Math.max(0, Math.min(1, (p - lo) / rng)) * 100; }
-  var e = pos(L.entry);
-  var left = L.long ? "seg-r" : "seg-g", right = L.long ? "seg-g" : "seg-r";
-  var slSide = d.sl <= L.tp1 ? "left" : "right";
-  function lab(kind, txt, v) { return '<span class="' + kind + '">' + txt + " " + price(v) + "</span>"; }
-  var tp2Mark = L.tp2 != null ? '<span class="tp2mk" style="left:' + pos(L.tp2) + '%"></span>' : "";
-  var tp2Lab = L.tp2 != null ? lab("tp tp2", "TP2", L.tp2) : "";
-  var labels = slSide === "left"
-    ? lab("sl", "SL", d.sl) + lab("tp", "TP1", L.tp1) + tp2Lab
-    : tp2Lab + lab("tp", "TP1", L.tp1) + lab("sl", "SL", d.sl);
-  return '<div class="lv"><div class="bar"><span class="' + left + '" style="width:' + e + '%"></span><span class="' + right + '" style="width:' + (100 - e) + '%"></span>' +
-    '<span class="et" style="left:' + e + '%"></span><span class="mk" style="left:' + pos(last) + '%"></span>' + tp2Mark + '</div>' +
-    '<div class="lvl">' + labels + "</div></div>";
+  var eB = pos(L.entry);
+  var bottomCls = L.long ? "seg-r" : "seg-g", topCls = L.long ? "seg-g" : "seg-r";
+  function row(cls, txt, v, b) {
+    return '<div class="lvrow ' + cls + '" style="bottom:' + b.toFixed(2) + '%"><i></i><b>' + txt + '</b><span class="num">' + price(v) + '</span></div>';
+  }
+  var rows = row("sl", "SL", d.sl, pos(d.sl)) + row("entry", "Entry", L.entry, eB) + row("tp tp1", "TP1", L.tp1, pos(L.tp1));
+  if (L.tp2 != null) rows += row("tp tp2", "TP2", L.tp2, pos(L.tp2));
+  return '<div class="lv"><div class="lvbox">' +
+    '<div class="lvtrack"><span class="' + bottomCls + '" style="height:' + eB.toFixed(2) + '%"></span>' +
+    '<span class="' + topCls + '" style="height:' + (100 - eB).toFixed(2) + '%;bottom:' + eB.toFixed(2) + '%"></span></div>' +
+    '<span class="lvnow" style="bottom:' + pos(last).toFixed(2) + '%"></span>' + rows + "</div></div>";
 }
 
 /* ================= DETAIL (เต็มจอ) ================= */
@@ -502,7 +503,7 @@ function detailHTML(t) {
       return '<button data-detp="' + k + '" aria-pressed="' + (S.detPeriod === k) + '">' + k.toUpperCase() + "</button>";
     }).join("") + "</div>";
     o += lineChart(ser, DET_PERIODS[S.detPeriod]);
-    o += '<div class="chartlegend"><span><i style="background:currentColor"></i>ราคาปิด</span><span><i style="background:var(--gold)"></i>MA50</span><span><i style="background:var(--sideways)"></i>MA100 (อ้างอิงสะสม)</span><span><i style="background:var(--impr)"></i>MA200</span></div>';
+    o += '<div class="chartlegend"><span><i style="background:currentColor"></i>ราคาปิด</span><span><i style="background:var(--ma50)"></i>MA50</span><span><i style="background:var(--ma100)"></i>MA100 (อ้างอิงสะสม)</span><span><i style="background:var(--ma200)"></i>MA200</span></div>';
   }
 
   if (ac) {
@@ -588,14 +589,16 @@ function lineChart(ser, n) {
   var W = 340, H = 170, pad = 4;
   function X(i) { return pad + (i / (c.length - 1)) * (W - 2 * pad); }
   function Y(v) { return pad + (1 - (v - mn) / rng) * (H - 2 * pad); }
-  function line(arr, stroke, dash) {
+  function line(arr, stroke, dash, width) {
     var pts = [];
     arr.forEach(function (v, i) { if (v != null) pts.push(X(i).toFixed(1) + "," + Y(v).toFixed(1)); });
     if (!pts.length) return "";
-    return '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + stroke + '" stroke-width="' + (dash ? 1.3 : 1.8) + '"' + (dash ? ' stroke-dasharray="' + dash + '"' : "") + ' vector-effect="non-scaling-stroke"/>';
+    var w = width != null ? width : (dash ? 1.3 : 1.8);
+    return '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + stroke + '" stroke-width="' + w + '"' + (dash ? ' stroke-dasharray="' + dash + '"' : "") + ' stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
   }
   var o = '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="กราฟราคาพร้อมเส้นค่าเฉลี่ย">';
-  o += line(m200, "var(--impr)") + line(m100, "var(--sideways)", "3,2") + line(m50, "var(--gold)") + line(c, "currentColor");
+  // MA200/MA50 หนาเท่ากันเพื่อเน้นโครงสร้างหลัก (ส้ม/เขียวเข้ม) · MA100 (เหลืองเข้ม) เป็นเส้นประจุดอ้างอิงสะสม · ราคาปิดวาดทับบนสุด
+  o += line(m200, "var(--ma200)", null, 2.4) + line(m100, "var(--ma100)", "3,2") + line(m50, "var(--ma50)", null, 2.4) + line(c, "currentColor");
   o += '<text x="' + pad + '" y="' + (H - 4) + '" font-size="9" fill="currentColor" opacity=".55">' + fmtDate(d[0]) + '</text>';
   o += '<text x="' + (W - pad) + '" y="' + (H - 4) + '" font-size="9" text-anchor="end" fill="currentColor" opacity=".55">' + fmtDate(d[d.length - 1]) + '</text>';
   return o + "</svg>";

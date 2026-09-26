@@ -13,17 +13,17 @@
   "use strict";
 
   var STATUS = {
-    weak:     {key: "weak",     th: "อ่อนแอ",   short: "อ่อนแอ",  rank: 0},
-    sideways: {key: "sideways", th: "ไซด์เวย์", short: "ไซด์เวย์", rank: 1},
-    strong:   {key: "strong",   th: "แข็งแรง",  short: "แข็งแรง", rank: 2},
-    caution:  {key: "caution",  th: "ระวัง",    short: "ระวัง",   rank: 3},
-    unknown:  {key: "unknown",  th: "ไม่มีข้อมูลพอ", short: "–",   rank: 4},
+    weak:     {key: "weak",     th: "อ่อนแอ",   en: "Weak",     short: "อ่อนแอ",  shortEn: "Weak",     rank: 0},
+    sideways: {key: "sideways", th: "ไซด์เวย์", en: "Sideways", short: "ไซด์เวย์", shortEn: "Sideways", rank: 1},
+    strong:   {key: "strong",   th: "แข็งแรง",  en: "Strong",   short: "แข็งแรง", shortEn: "Strong",   rank: 2},
+    caution:  {key: "caution",  th: "ระวัง",    en: "Caution",  short: "ระวัง",   shortEn: "Caution",  rank: 3},
+    unknown:  {key: "unknown",  th: "ไม่มีข้อมูลพอ", en: "Not enough data", short: "–", shortEn: "–", rank: 4},
   };
 
   var REGIME = {
-    riskOn:  {key: "risk-on",  th: "Risk-On",  short: "เสี่ยงได้"},
-    neutral: {key: "neutral",  th: "Neutral",  short: "กลางๆ"},
-    riskOff: {key: "risk-off", th: "Risk-Off", short: "ระวัง"},
+    riskOn:  {key: "risk-on",  th: "Risk-On",  en: "Risk-On",  short: "เสี่ยงได้", shortEn: "Risk-On"},
+    neutral: {key: "neutral",  th: "Neutral",  en: "Neutral",  short: "กลางๆ",     shortEn: "Neutral"},
+    riskOff: {key: "risk-off", th: "Risk-Off", en: "Risk-Off", short: "ระวัง",     shortEn: "Caution"},
   };
 
   /* ---- แท็บ "สะสม" (long-term accumulation, MA50/100/200) ----
@@ -38,36 +38,36 @@
   var TREND_TOLERANCE = 0;
 
   var TREND_STATUS = {
-    green:   {key: "green",   th: "ขาขึ้น",         short: "ขาขึ้น",  arrow: "↗", rank: 0},
-    yellow:  {key: "yellow",  th: "อ่อนตัว",        short: "อ่อนตัว", arrow: "≈", rank: 1},
-    red:     {key: "red",     th: "ขาลง",           short: "ขาลง",   arrow: "↘", rank: 2},
-    unknown: {key: "unknown", th: "ไม่มีข้อมูลพอ", short: "–",       arrow: "",  rank: 3},
+    green:   {key: "green",   th: "ขาขึ้น",         en: "Uptrend",         short: "ขาขึ้น",  shortEn: "Uptrend",   arrow: "↗", rank: 0},
+    yellow:  {key: "yellow",  th: "อ่อนตัว",        en: "Weakening",       short: "อ่อนตัว", shortEn: "Weakening", arrow: "≈", rank: 1},
+    red:     {key: "red",     th: "ขาลง",           en: "Downtrend",       short: "ขาลง",   shortEn: "Downtrend", arrow: "↘", rank: 2},
+    unknown: {key: "unknown", th: "ไม่มีข้อมูลพอ", en: "Not enough data", short: "–",       shortEn: "–",         arrow: "",  rank: 3},
   };
 
   var ACCUM_ZONE = {
-    A: {key: "A", th: "สูงกว่าโซนสะสมมาก"},
-    B: {key: "B", th: "Trend ปกติ"},
-    C: {key: "C", th: "เข้าใกล้ MA100"},
-    D: {key: "D", th: "หลุด MA100"},
-    E: {key: "E", th: "ระวังแนวโน้มเปลี่ยน"},
-    unknown: {key: "unknown", th: "ไม่มีข้อมูลพอ"},
+    A: {key: "A", th: "สูงกว่าโซนสะสมมาก", en: "Well above accumulation zone"},
+    B: {key: "B", th: "Trend ปกติ", en: "Normal trend"},
+    C: {key: "C", th: "เข้าใกล้ MA100", en: "Approaching MA100"},
+    D: {key: "D", th: "หลุด MA100", en: "Below MA100"},
+    E: {key: "E", th: "ระวังแนวโน้มเปลี่ยน", en: "Caution — trend may be turning"},
+    unknown: {key: "unknown", th: "ไม่มีข้อมูลพอ", en: "Not enough data"},
   };
 
   var ADX_STRENGTH = {
-    weak:     {key: "weak",     th: "อ่อน / Sideway"},
-    emerging: {key: "emerging", th: "เริ่มมีแนวโน้ม"},
-    clear:    {key: "clear",    th: "ชัดเจน"},
-    strong:   {key: "strong",   th: "แข็งแรง"},
-    unknown:  {key: "unknown",  th: "–"},
+    weak:     {key: "weak",     th: "อ่อน / Sideway", en: "Weak / Sideways"},
+    emerging: {key: "emerging", th: "เริ่มมีแนวโน้ม", en: "Emerging trend"},
+    clear:    {key: "clear",    th: "ชัดเจน", en: "Clear trend"},
+    strong:   {key: "strong",   th: "แข็งแรง", en: "Strong trend"},
+    unknown:  {key: "unknown",  th: "–", en: "–"},
   };
 
   var ACCUM_ACTION = {
-    wait:     {key: "wait",     th: "รอจังหวะย่อ",         rank: 0},
-    normal:   {key: "normal",   th: "สะสมตามแผน",          rank: 1},
-    increase: {key: "increase", th: "เพิ่มน้ำหนักสะสม",     rank: 2},
-    scaledIn: {key: "scaledIn", th: "สะสมแบบแบ่งไม้",       rank: 1},
-    pause:    {key: "pause",    th: "ชะลอ / รอความชัดเจน", rank: 3},
-    unknown:  {key: "unknown",  th: "–",                    rank: 4},
+    wait:     {key: "wait",     th: "รอจังหวะย่อ",         en: "Wait for a pullback",       rank: 0},
+    normal:   {key: "normal",   th: "สะสมตามแผน",          en: "Accumulate as planned",     rank: 1},
+    increase: {key: "increase", th: "เพิ่มน้ำหนักสะสม",     en: "Increase accumulation",     rank: 2},
+    scaledIn: {key: "scaledIn", th: "สะสมแบบแบ่งไม้",       en: "Scale in gradually",        rank: 1},
+    pause:    {key: "pause",    th: "ชะลอ / รอความชัดเจน", en: "Pause — wait for clarity",  rank: 3},
+    unknown:  {key: "unknown",  th: "–",                    en: "–",                          rank: 4},
   };
 
   // โซน A-E -> action พื้นฐาน (ใช้ตรงๆ เมื่อ Trend=GREEN)
@@ -226,10 +226,10 @@
     var reward2 = tp2 == null ? null : (long ? tp2 - entry : entry - tp2);
     var rr2 = tp2 != null && risk > 0 && reward2 > 0 ? reward2 / risk : null;
     var st = null;
-    if (dSL <= 0) st = {key: "bad", th: "ทะลุ SL"};
-    else if (dTP <= 0) st = {key: "good", th: "ถึง TP1"};
-    else if (dSL < 1.5) st = {key: "warn", th: "ใกล้ SL"};
-    else if (dTP < 1.5) st = {key: "note", th: "ใกล้ TP1"};
+    if (dSL <= 0) st = {key: "bad", th: "ทะลุ SL", en: "Broke SL"};
+    else if (dTP <= 0) st = {key: "good", th: "ถึง TP1", en: "Reached TP1"};
+    else if (dSL < 1.5) st = {key: "warn", th: "ใกล้ SL", en: "Near SL"};
+    else if (dTP < 1.5) st = {key: "note", th: "ใกล้ TP1", en: "Near TP1"};
     return {long: long, entry: entry, tp1: tp1, tp2: tp2, dSL: dSL, dTP: dTP, dTP2: dTP2, rr: rr, rr2: rr2, st: st};
   }
 

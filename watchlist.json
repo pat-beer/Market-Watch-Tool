@@ -3,6 +3,7 @@
   {
    "id": "sector",
    "label": "ภาคส่วน US",
+   "labelEn": "US Sectors",
    "benchmark": "SPY",
    "rrg": true,
    "items": [
@@ -11,83 +12,95 @@
      "th": "เทคโนโลยี",
      "en": "Technology",
      "sh": "เทค",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Tech"
     },
     {
      "t": "XLC",
      "th": "สื่อสาร",
      "en": "Communication",
      "sh": "สื่อสาร",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Comm"
     },
     {
      "t": "XLY",
      "th": "สินค้าฟุ่มเฟือย",
      "en": "Consumer Disc.",
      "sh": "ฟุ่มเฟือย",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Disc"
     },
     {
      "t": "XLF",
      "th": "การเงิน",
      "en": "Financials",
      "sh": "การเงิน",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Fin"
     },
     {
      "t": "XLI",
      "th": "อุตสาหกรรม",
      "en": "Industrials",
      "sh": "อุตฯ",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Ind"
     },
     {
      "t": "XLV",
      "th": "สุขภาพ",
      "en": "Health Care",
      "sh": "สุขภาพ",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Health"
     },
     {
      "t": "XLE",
      "th": "พลังงาน",
      "en": "Energy",
      "sh": "พลังงาน",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Energy"
     },
     {
      "t": "XLB",
      "th": "วัสดุ",
      "en": "Materials",
      "sh": "วัสดุ",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Matls"
     },
     {
      "t": "XLP",
      "th": "สินค้าจำเป็น",
      "en": "Consumer Staples",
      "sh": "จำเป็น",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Staples"
     },
     {
      "t": "XLU",
      "th": "สาธารณูปโภค",
      "en": "Utilities",
      "sh": "ยูทิลิตี้",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Util"
     },
     {
      "t": "XLRE",
      "th": "อสังหาฯ",
      "en": "Real Estate",
      "sh": "อสังหาฯ",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "REIT"
     }
    ]
   },
   {
    "id": "country",
    "label": "ประเทศ",
+   "labelEn": "Countries",
    "benchmark": "ACWI",
    "rrg": true,
    "items": [
@@ -96,90 +109,103 @@
      "th": "สหรัฐฯ",
      "en": "US",
      "sh": "สหรัฐฯ",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "US"
     },
     {
      "t": "EWJ",
      "th": "ญี่ปุ่น",
      "en": "Japan",
      "sh": "ญี่ปุ่น",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Japan"
     },
     {
      "t": "MCHI",
      "th": "จีน",
      "en": "China",
      "sh": "จีน",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "China"
     },
     {
      "t": "INDA",
      "th": "อินเดีย",
      "en": "India",
      "sh": "อินเดีย",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "India"
     },
     {
      "t": "EWT",
      "th": "ไต้หวัน",
      "en": "Taiwan",
      "sh": "ไต้หวัน",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Taiwan"
     },
     {
      "t": "EWY",
      "th": "เกาหลีใต้",
      "en": "Korea",
      "sh": "เกาหลี",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Korea"
     },
     {
      "t": "VNM",
      "th": "เวียดนาม",
      "en": "Vietnam",
      "sh": "เวียดนาม",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Vietnam"
     },
     {
      "t": "THD",
      "th": "ไทย",
      "en": "Thailand",
      "sh": "ไทย",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Thailand"
     },
     {
      "t": "EWG",
      "th": "เยอรมนี",
      "en": "Germany",
      "sh": "เยอรมนี",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Germany"
     },
     {
      "t": "EWU",
      "th": "อังกฤษ",
      "en": "UK",
      "sh": "อังกฤษ",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "UK"
     },
     {
      "t": "EWZ",
      "th": "บราซิล",
      "en": "Brazil",
      "sh": "บราซิล",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "Brazil"
     },
     {
      "t": "EEM",
      "th": "ตลาดเกิดใหม่",
      "en": "Emerging Mkts",
      "sh": "EM",
-     "cat": "equity"
+     "cat": "equity",
+     "shEn": "EM"
     }
    ]
   },
   {
    "id": "asset",
    "label": "สินทรัพย์",
+   "labelEn": "Assets",
    "rrg": false,
    "items": [
     {

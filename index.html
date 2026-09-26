@@ -17,22 +17,23 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<a class="vh" href="#main">ข้ามไปเนื้อหาหลัก</a>
+<a class="vh" href="#main" data-th="ข้ามไปเนื้อหาหลัก" data-en="Skip to main content">ข้ามไปเนื้อหาหลัก</a>
 <header class="top">
-  <button class="back iconbtn" id="backBtn" hidden aria-label="ย้อนกลับ">←</button>
+  <button class="back iconbtn" id="backBtn" hidden data-th-aria="ย้อนกลับ" data-en-aria="Back" aria-label="ย้อนกลับ">←</button>
   <div class="titlewrap">
     <h1 id="pageTitle">Market Structure</h1>
     <div class="sub" id="pageSub"></div>
   </div>
-  <button class="iconbtn" id="fsBtn" aria-label="ปรับขนาดตัวอักษร">Aa</button>
-  <button class="iconbtn" id="themeBtn" aria-label="สลับธีมมืด/สว่าง">☀️</button>
+  <button class="iconbtn" id="langBtn" data-th-aria="สลับภาษาไทย/อังกฤษ" data-en-aria="Switch Thai/English" aria-label="สลับภาษาไทย/อังกฤษ">EN</button>
+  <button class="iconbtn" id="fsBtn" data-th-aria="ปรับขนาดตัวอักษร" data-en-aria="Adjust text size" aria-label="ปรับขนาดตัวอักษร">Aa</button>
+  <button class="iconbtn" id="themeBtn" data-th-aria="สลับธีมมืด/สว่าง" data-en-aria="Toggle dark/light theme" aria-label="สลับธีมมืด/สว่าง">☀️</button>
 </header>
 <main id="main"></main>
 <nav class="nav" role="tablist">
-  <button role="tab" id="tab-overview" aria-selected="true" data-tab="overview"><span class="ic">◎</span>ภาพรวม</button>
-  <button role="tab" id="tab-list" aria-selected="false" data-tab="list"><span class="ic">☰</span>รายการ</button>
-  <button role="tab" id="tab-daily" aria-selected="false" data-tab="daily"><span class="ic">◷</span>รายวัน</button>
-  <button role="tab" id="tab-accum" aria-selected="false" data-tab="accum"><span class="ic">✚</span>สะสม</button>
+  <button role="tab" id="tab-overview" aria-selected="true" data-tab="overview"><span class="ic">◎</span><span data-th="ภาพรวม" data-en="Overview">ภาพรวม</span></button>
+  <button role="tab" id="tab-list" aria-selected="false" data-tab="list"><span class="ic">☰</span><span data-th="รายการ" data-en="Watchlist">รายการ</span></button>
+  <button role="tab" id="tab-daily" aria-selected="false" data-tab="daily"><span class="ic">◷</span><span data-th="รายวัน" data-en="Daily">รายวัน</span></button>
+  <button role="tab" id="tab-accum" aria-selected="false" data-tab="accum"><span class="ic">✚</span><span data-th="สะสม" data-en="Accumulate">สะสม</span></button>
 </nav>
 <div class="sheet" id="sheet" hidden><div class="pane" id="pane" role="dialog" aria-modal="true"></div></div>
 

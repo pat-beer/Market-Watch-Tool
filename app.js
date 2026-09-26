@@ -3,12 +3,12 @@
  * กฎสถานะ/Risk-On อยู่ใน rules.js (window.Rules) ไฟล์นี้มีหน้าที่แสดงผลเท่านั้น */
 
 var Q = {
-  leading:  {th: "นำตลาด",   hex: "#0E8A4F"},
-  weakening:{th: "เริ่มอ่อน", hex: "#C98A0B"},
-  lagging:  {th: "ตามหลัง",  hex: "#C62F3B"},
-  improving:{th: "กำลังฟื้น", hex: "#2563A8"},
+  leading:  {th: "นำตลาด",   en: "Leading",    hex: "#0E8A4F"},
+  weakening:{th: "เริ่มอ่อน", en: "Weakening",  hex: "#C98A0B"},
+  lagging:  {th: "ตามหลัง",  en: "Lagging",    hex: "#C62F3B"},
+  improving:{th: "กำลังฟื้น", en: "Improving",  hex: "#2563A8"},
 };
-var VIEW = {overweight: {th: "เพิ่ม", ic: "▲", cl: "up"}, neutral: {th: "ถือ", ic: "●", cl: ""}, underweight: {th: "ลด", ic: "▼", cl: "down"}};
+var VIEW = {overweight: {th: "เพิ่ม", en: "Add", ic: "▲", cl: "up"}, neutral: {th: "ถือ", en: "Hold", ic: "●", cl: ""}, underweight: {th: "ลด", en: "Reduce", ic: "▼", cl: "down"}};
 var GROUP_ICON = {sector: "🏭", country: "🌍", asset: "◆"};
 var CAT_TH = {equity: "หุ้น/ETF", commodity: "สินค้าโภคภัณฑ์", bond: "ตราสารหนี้", crypto: "คริปโต", dxy: "ดัชนีดอลลาร์"};
 
@@ -17,7 +17,7 @@ var S = {
   group: "sector", groupView: "rrg", tableMode: "structure", period: "r1m",
   detPeriod: "1y", sel: null,
   wl: null, px: null, series: null, an: null,
-  theme: "light", fs: 1,
+  theme: "light", fs: 1, lang: "en",
 };
 
 var $ = function (s) { return document.querySelector(s); };
@@ -29,14 +29,23 @@ function heat(v, scale) { if (v == null) return "transparent"; var a = Math.min(
   return v >= 0 ? "color-mix(in srgb, var(--strong) " + Math.round(a * 100) + "%, transparent)" : "color-mix(in srgb, var(--weak) " + Math.round(a * 100) + "%, transparent)"; }
 var SCALE = {r1w: 4, r1m: 8, r3m: 15, r6m: 22, r1y: 30, ytd: 25};
 var PERIOD_LABEL = {r1w: "1 สัปดาห์", r1m: "1 เดือน", r3m: "3 เดือน", r6m: "6 เดือน", r1y: "1 ปี", ytd: "ตั้งแต่ต้นปี"};
-function fmtDate(d) { return new Date(d).toLocaleDateString("th-TH", {day: "numeric", month: "short", timeZone: "Asia/Bangkok"}); }
-function fmtDT(d) { return new Date(d).toLocaleString("th-TH", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Bangkok"}); }
+var PERIOD_LABEL_EN = {r1w: "1 week", r1m: "1 month", r3m: "3 months", r6m: "6 months", r1y: "1 year", ytd: "YTD"};
+function fmtDate(d) { return S.lang === "en" ? new Date(d).toLocaleDateString("en-US", {day: "numeric", month: "short", timeZone: "Asia/Bangkok"}) : new Date(d).toLocaleDateString("th-TH", {day: "numeric", month: "short", timeZone: "Asia/Bangkok"}); }
+function fmtDT(d) { return S.lang === "en" ? new Date(d).toLocaleString("en-US", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Bangkok"}) : new Date(d).toLocaleString("th-TH", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Bangkok"}); }
 function daysAgo(d) { var iso = String(d).length === 10 ? d + "T00:00:00+07:00" : d; return Math.floor((Date.now() - new Date(iso).getTime()) / 864e5); }
 var store = {get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }};
 
+/* ---------- i18n: T(th,en) สำหรับข้อความคงที่ / pick(o) สำหรับอ็อบเจกต์ {th,en} ---------- */
+function T(th, en) { return S.lang === "en" ? en : th; }
+function pick(o) { if (!o) return ""; return S.lang === "en" ? (o.en != null ? o.en : o.th) : o.th; }
+function pickShort(o) { if (!o) return ""; if (S.lang === "en") return o.shortEn != null ? o.shortEn : (o.en != null ? o.en : o.short); return o.short; }
+function groupLabel(g) { return S.lang === "en" ? (g.labelEn || g.label) : g.label; }
+function pickSh(it) { return S.lang === "en" ? (it.shEn || it.sh || it.disp) : (it.sh || it.disp); }
+function daysAgoTxt(n) { return T(" (เก่า " + n + " วัน)", " (" + n + "d old)"); }
+
 function trendArrow(trend) { return trend === "up" ? "↑" : trend === "down" ? "↓" : "→"; }
 function statusChip(st, withDot) {
-  return '<span class="statuscell ' + st.key + '">' + (withDot === false ? "" : "<i></i>") + esc(st.short) + "</span>";
+  return '<span class="statuscell ' + st.key + '">' + (withDot === false ? "" : "<i></i>") + esc(pickShort(st)) + "</span>";
 }
 
 /* ---------- data ---------- */
@@ -72,7 +81,7 @@ function setHeader(title, sub, showBack) {
 function renderFresh() {
   if (!S.px) return;
   var h = (Date.now() - new Date(S.px.updated)) / 36e5;
-  S.freshText = fmtDT(S.px.updated) + (S.px.demo ? " · ตัวอย่าง" : "");
+  S.freshText = fmtDT(S.px.updated) + (S.px.demo ? T(" · ตัวอย่าง", " · Sample") : "");
   S.freshOld = h > 30;
 }
 
@@ -82,40 +91,42 @@ function overviewHTML() {
   var o = regimeCard(reg);
   o += weeklyNote();
 
-  o += '<div class="sectionhd"><h2>ภาพรวมรายกลุ่ม</h2></div>';
+  o += '<div class="sectionhd"><h2>' + T("ภาพรวมรายกลุ่ม", "Group overview") + '</h2></div>';
   o += '<div class="tiles">';
   S.wl.groups.forEach(function (g) {
     var gs = Rules.groupSummary(g.items, S.px.symbols);
     var pct200 = gs.pctAbove200;
     var domKey = pct200 == null ? "unknown" : pct200 >= 60 ? "strong" : pct200 <= 40 ? "weak" : "caution";
     o += '<button class="tile" data-goto-group="' + g.id + '">' +
-      '<span class="lbl">' + GROUP_ICON[g.id] + " " + esc(g.label) + "</span>" +
+      '<span class="lbl">' + GROUP_ICON[g.id] + " " + esc(groupLabel(g)) + "</span>" +
       '<span class="val ' + domKey + '">' + (pct200 == null ? "–" : Math.round(pct200) + "%") + "</span>" +
       '<span class="bar"><i style="width:' + (pct200 || 0) + '%;background:var(--' + domKey + ')"></i></span></button>';
   });
   o += "</div>";
 
-  o += '<div class="sectionhd"><h2>สัดส่วนเหนือเส้น 200 วัน</h2><button class="help" id="critBtn" aria-label="ดูเกณฑ์การประเมิน">?</button></div>';
+  o += '<div class="sectionhd"><h2>' + T("สัดส่วนเหนือเส้น 200 วัน", "% above 200-day line") + '</h2><button class="help" id="critBtn" aria-label="' + T("ดูเกณฑ์การประเมิน", "View evaluation criteria") + '">?</button></div>';
   S.wl.groups.forEach(function (g) {
     var gs = Rules.groupSummary(g.items, S.px.symbols);
     var p = gs.pctAbove200 == null ? 0 : gs.pctAbove200;
     var col = p >= 60 ? "strong" : p <= 40 ? "weak" : "caution";
-    o += '<div class="gbar-row"><span class="nm">' + esc(g.label) + '</span><span class="track"><i style="width:' + p + '%;background:var(--' + col + ')"></i></span><span class="pctv num">' + Math.round(p) + '%</span></div>';
+    o += '<div class="gbar-row"><span class="nm">' + esc(groupLabel(g)) + '</span><span class="track"><i style="width:' + p + '%;background:var(--' + col + ')"></i></span><span class="pctv num">' + Math.round(p) + '%</span></div>';
   });
 
   o += quoteLine(reg);
-  o += '<p class="foot">ตัวเลขทั้งหมดคำนวณจากราคาและ ADX/RSI ในรอบอัปเดตล่าสุด ไม่ใช่สัญญาณซื้อขาย · แตะการ์ดกลุ่มเพื่อดูรายละเอียดในแท็บ "รายการ"</p>';
+  o += '<p class="foot">' + T('ตัวเลขทั้งหมดคำนวณจากราคาและ ADX/RSI ในรอบอัปเดตล่าสุด ไม่ใช่สัญญาณซื้อขาย · แตะการ์ดกลุ่มเพื่อดูรายละเอียดในแท็บ "รายการ"',
+    'All figures are computed from price and ADX/RSI at the latest update — not a trading signal. Tap a group card for details in the "Watchlist" tab.') + '</p>';
   return o;
 }
 function regimeCard(reg) {
   var r = reg.regime;
   var emoji = r.key === "risk-on" ? "😊" : r.key === "risk-off" ? "⚠️" : "😐";
-  var desc = r.key === "risk-on" ? "สินทรัพย์เสี่ยงส่วนใหญ่อยู่เหนือเส้นแนวโน้มระยะยาว" :
-    r.key === "risk-off" ? "สินทรัพย์เสี่ยงส่วนใหญ่หลุดเส้นแนวโน้มระยะยาว" : "สัญญาณผสม ยังไม่ชัดไปทางใดทางหนึ่ง";
-  var benchTxt = reg.benchAbove == null ? "ไม่มีข้อมูล " + esc(reg.benchT) :
-    (reg.benchAbove ? '<span class="ok">✓ ' + esc(reg.benchT) + " เหนือ 200D</span>" : '<span class="no">✕ ' + esc(reg.benchT) + " ใต้ 200D</span>");
-  return '<div class="regime ' + r.key + '"><div class="hd"><span class="emoji">' + emoji + '</span><span class="ttl">' + esc(r.th) + '</span>' +
-    '<span class="pct">อัตราส่วนสินทรัพย์เสี่ยง<b class="num">' + (reg.pct == null ? "–" : Math.round(reg.pct) + "%") + '</b></span></div>' +
+  var desc = r.key === "risk-on" ? T("สินทรัพย์เสี่ยงส่วนใหญ่อยู่เหนือเส้นแนวโน้มระยะยาว", "Most risk assets are above their long-term trend line") :
+    r.key === "risk-off" ? T("สินทรัพย์เสี่ยงส่วนใหญ่หลุดเส้นแนวโน้มระยะยาว", "Most risk assets have broken below their long-term trend line") :
+    T("สัญญาณผสม ยังไม่ชัดไปทางใดทางหนึ่ง", "Mixed signals — no clear direction yet");
+  var benchTxt = reg.benchAbove == null ? T("ไม่มีข้อมูล ", "No data ") + esc(reg.benchT) :
+    (reg.benchAbove ? '<span class="ok">✓ ' + esc(reg.benchT) + T(" เหนือ 200D", " above 200D") + "</span>" : '<span class="no">✕ ' + esc(reg.benchT) + T(" ใต้ 200D", " below 200D") + "</span>");
+  return '<div class="regime ' + r.key + '"><div class="hd"><span class="emoji">' + emoji + '</span><span class="ttl">' + esc(pick(r)) + '</span>' +
+    '<span class="pct">' + T("อัตราส่วนสินทรัพย์เสี่ยง", "Risk-asset ratio") + '<b class="num">' + (reg.pct == null ? "–" : Math.round(reg.pct) + "%") + '</b></span></div>' +
     '<p class="desc">' + desc + '</p><div class="bench">' + benchTxt + '</div></div>';
 }
 function quoteLine(reg) {
@@ -125,21 +136,23 @@ function quoteLine(reg) {
     if (gs.pctAbove200 != null && gs.pctAbove200 < 50) weakCount++;
   });
   var txt = reg.regime.key === "risk-on"
-    ? (weakCount > 0 ? "ภาพรวมเป็น Risk-On แต่มี " + weakCount + " กลุ่มที่ยังอ่อนกว่าครึ่งหนึ่ง ควรเลือกเป็นรายกลุ่ม" : "ภาพรวมเป็น Risk-On และสอดคล้องกันในทุกกลุ่มหลัก")
-    : reg.regime.key === "risk-off" ? "ภาพรวมเป็น Risk-Off ควรเน้นเก็บสภาพคล่องและระมัดระวังสินทรัพย์เสี่ยง"
-    : "ภาพรวมยังกลางๆ รอสัญญาณที่ชัดเจนขึ้นก่อนปรับพอร์ตใหญ่";
+    ? (weakCount > 0 ? T("ภาพรวมเป็น Risk-On แต่มี " + weakCount + " กลุ่มที่ยังอ่อนกว่าครึ่งหนึ่ง ควรเลือกเป็นรายกลุ่ม", "Overall Risk-On, but " + weakCount + " group(s) are still below half — be selective by group")
+        : T("ภาพรวมเป็น Risk-On และสอดคล้องกันในทุกกลุ่มหลัก", "Overall Risk-On and consistent across all major groups"))
+    : reg.regime.key === "risk-off" ? T("ภาพรวมเป็น Risk-Off ควรเน้นเก็บสภาพคล่องและระมัดระวังสินทรัพย์เสี่ยง", "Overall Risk-Off — favor holding liquidity and be cautious with risk assets")
+    : T("ภาพรวมยังกลางๆ รอสัญญาณที่ชัดเจนขึ้นก่อนปรับพอร์ตใหญ่", "Overall still neutral — wait for a clearer signal before making major portfolio changes");
   return '<p class="quote">' + txt + "</p>";
 }
 
 /* ---------- weekly note (มุมมอง Claude) ---------- */
 function weeklyNote() {
   var w = S.an && S.an.weekly;
-  if (!w) return '<div class="wnote"><div class="meta">ยังไม่มีมุมมองรายสัปดาห์จาก Claude — สั่งวิเคราะห์จาก desktop แล้วอัปเดต data/analysis.json</div></div>';
-  var STMAP = {"risk-on": ["เสี่ยงได้", "on"], neutral: ["กลางๆ", "mid"], "risk-off": ["ระวัง", "off"]};
+  if (!w) return '<div class="wnote"><div class="meta">' + T("ยังไม่มีมุมมองรายสัปดาห์จาก Claude — สั่งวิเคราะห์จาก desktop แล้วอัปเดต data/analysis.json",
+    "No weekly view from Claude yet — run the analysis on desktop and update data/analysis.json") + '</div></div>';
+  var STMAP = {"risk-on": [T("เสี่ยงได้", "Risk-On"), "on"], neutral: [T("กลางๆ", "Neutral"), "mid"], "risk-off": [T("ระวัง", "Risk-Off"), "off"]};
   var st = STMAP[w.stance]; var age = S.an.asof ? daysAgo(S.an.asof) : null;
   var o = '<div class="wnote"><div class="hd">' + (st ? '<span class="stance ' + st[1] + '">' + st[0] + "</span>" : "") + "<h2>" + esc(w.headline) + "</h2></div>";
   if (w.points && w.points.length) o += "<ul>" + w.points.slice(0, 3).map(function (p) { return "<li>" + esc(p) + "</li>"; }).join("") + "</ul>";
-  o += '<div class="meta' + (age > 10 ? " old" : "") + '">มุมมอง Claude · วิเคราะห์ ' + (S.an.asof ? fmtDate(S.an.asof) : "–") + (age > 10 ? " (เก่า " + age + " วัน)" : "") + "</div></div>";
+  o += '<div class="meta' + (age > 10 ? " old" : "") + '">' + T("มุมมอง Claude · วิเคราะห์ ", "Claude's view · analyzed ") + (S.an.asof ? fmtDate(S.an.asof) : "–") + (age > 10 ? daysAgoTxt(age) : "") + "</div></div>";
   return o;
 }
 
@@ -148,38 +161,39 @@ function listHTML() {
   var g = findGroup(S.group);
   var list = groupItems(g);
   var o = "";
-  o += '<div class="seg" role="group" aria-label="กลุ่มสินทรัพย์">' + S.wl.groups.map(function (x) {
-    return '<button data-group="' + x.id + '" aria-pressed="' + (x.id === g.id) + '">' + esc(x.label) + "</button>";
+  o += '<div class="seg" role="group" aria-label="' + T("กลุ่มสินทรัพย์", "Asset group") + '">' + S.wl.groups.map(function (x) {
+    return '<button data-group="' + x.id + '" aria-pressed="' + (x.id === g.id) + '">' + esc(groupLabel(x)) + "</button>";
   }).join("") + "</div>";
 
   if (g.rrg) {
-    o += '<div class="seg" role="group" aria-label="มุมมอง">' +
+    o += '<div class="seg" role="group" aria-label="' + T("มุมมอง", "View") + '">' +
       '<button data-gview="rrg" aria-pressed="' + (S.groupView === "rrg") + '">RRG</button>' +
-      '<button data-gview="list" aria-pressed="' + (S.groupView === "list") + '">รายการ</button></div>';
+      '<button data-gview="list" aria-pressed="' + (S.groupView === "list") + '">' + T("รายการ", "List") + '</button></div>';
   }
 
   if (g.rrg && S.groupView === "rrg") {
-    o += '<div class="chead"><h3>ทิศทางการหมุนเวียน<span class="sub">เทียบกับ ' + esc(g.benchmark) + '</span></h3><button class="help" id="help" aria-label="อ่านกราฟนี้อย่างไร">?</button></div>';
+    o += '<div class="chead"><h3>' + T("ทิศทางการหมุนเวียน", "Rotation direction") + '<span class="sub">' + T("เทียบกับ ", "vs ") + esc(g.benchmark) + '</span></h3><button class="help" id="help" aria-label="' + T("อ่านกราฟนี้อย่างไร", "How to read this chart") + '">?</button></div>';
     o += rrgSVG(list, S.sel) + movers(list);
-    o += '<div class="legend">' + Object.keys(Q).map(function (k) { return '<span><i style="background:' + Q[k].hex + '"></i>' + Q[k].th + "</span>"; }).join("") + "</div>";
+    o += '<div class="legend">' + Object.keys(Q).map(function (k) { return '<span><i style="background:' + Q[k].hex + '"></i>' + esc(pick(Q[k])) + "</span>"; }).join("") + "</div>";
     o += listTable(list, g, true);
   } else {
-    o += '<div class="seg" role="group" aria-label="มุมมองตาราง">' +
-      '<button data-tmode="structure" aria-pressed="' + (S.tableMode === "structure") + '">โครงสร้าง</button>' +
-      '<button data-tmode="return" aria-pressed="' + (S.tableMode === "return") + '">ผลตอบแทน</button></div>';
+    o += '<div class="seg" role="group" aria-label="' + T("มุมมองตาราง", "Table view") + '">' +
+      '<button data-tmode="structure" aria-pressed="' + (S.tableMode === "structure") + '">' + T("โครงสร้าง", "Structure") + '</button>' +
+      '<button data-tmode="return" aria-pressed="' + (S.tableMode === "return") + '">' + T("ผลตอบแทน", "Return") + '</button></div>';
     o += listTable(list, g, false);
   }
-  o += '<p class="foot">แตะแถวเพื่อดูกราฟและรายละเอียด · สถานะคำนวณจากกฎตายตัว (ดูที่ปุ่ม "?" ในหน้าภาพรวม) ไม่ใช่สัญญาณซื้อขาย</p>';
+  o += '<p class="foot">' + T('แตะแถวเพื่อดูกราฟและรายละเอียด · สถานะคำนวณจากกฎตายตัว (ดูที่ปุ่ม "?" ในหน้าภาพรวม) ไม่ใช่สัญญาณซื้อขาย',
+    'Tap a row for chart and details · Status is computed from fixed rules (see the "?" button on the Overview tab) — not a trading signal') + '</p>';
   return o;
 }
 function listTable(list, g, compact) {
   if (S.tableMode === "return" && !compact) return returnTable(list);
   var sorted = list.slice().sort(function (a, b) { return (b.s.r1m == null ? -1e9 : b.s.r1m) - (a.s.r1m == null ? -1e9 : a.s.r1m); });
-  var o = '<div class="thead"><span></span><span style="text-align:center">RSI</span><span style="text-align:center">ADX</span><span style="text-align:center">สถานะ</span></div>';
+  var o = '<div class="thead"><span></span><span style="text-align:center">RSI</span><span style="text-align:center">ADX</span><span style="text-align:center">' + T("สถานะ", "Status") + '</span></div>';
   sorted.forEach(function (i) {
     var v = i.view && VIEW[i.view.view || i.view];
     o += '<button class="row" data-open="' + esc(i.t) + '"><span class="nm"><span class="arrow">' + trendArrow(i.trend) + '</span>' +
-      '<span class="tx"><b>' + esc(i.disp) + (v ? '<span class="v ' + v.cl + '">' + v.ic + v.th + "</span>" : "") + "</b><span>" + esc(i.th) + "</span></span></span>" +
+      '<span class="tx"><b>' + esc(i.disp) + (v ? '<span class="v ' + v.cl + '">' + v.ic + esc(pick(v)) + "</span>" : "") + "</b><span>" + esc(pick(i)) + "</span></span></span>" +
       '<span class="cell num">' + (i.s.rsi == null ? "–" : i.s.rsi.toFixed(0)) + '</span>' +
       '<span class="cell num">' + (i.s.adx == null ? "–" : i.s.adx.toFixed(0)) + '</span>' +
       "<span>" + statusChip(i.status) + "</span></button>";
@@ -187,15 +201,16 @@ function listTable(list, g, compact) {
   return o;
 }
 function returnTable(list) {
-  var o = '<div class="chiprow" role="group" aria-label="เลือกช่วงเวลา">' + Object.keys(PERIOD_LABEL).map(function (k) {
-    return '<button data-period="' + k + '" aria-pressed="' + (S.period === k) + '">' + PERIOD_LABEL[k] + "</button>";
+  var LBL = S.lang === "en" ? PERIOD_LABEL_EN : PERIOD_LABEL;
+  var o = '<div class="chiprow" role="group" aria-label="' + T("เลือกช่วงเวลา", "Select period") + '">' + Object.keys(PERIOD_LABEL).map(function (k) {
+    return '<button data-period="' + k + '" aria-pressed="' + (S.period === k) + '">' + LBL[k] + "</button>";
   }).join("") + "</div>";
   var sorted = list.slice().sort(function (a, b) { var bv = b.s[S.period], av = a.s[S.period]; return (bv == null ? -1e9 : bv) - (av == null ? -1e9 : av); });
-  o += '<div class="thead retcol"><span></span><span></span><span style="text-align:right">' + PERIOD_LABEL[S.period] + "</span></div>";
+  o += '<div class="thead retcol"><span></span><span></span><span style="text-align:right">' + LBL[S.period] + "</span></div>";
   sorted.forEach(function (i) {
     var val = i.s[S.period];
     o += '<button class="row retcol" data-open="' + esc(i.t) + '"><span class="nm"><span class="arrow">' + trendArrow(i.trend) + '</span>' +
-      '<span class="tx"><b>' + esc(i.disp) + "</b><span>" + esc(i.th) + "</span></span></span><span></span>" +
+      '<span class="tx"><b>' + esc(i.disp) + "</b><span>" + esc(pick(i)) + "</span></span></span><span></span>" +
       '<span class="cell num" style="text-align:right;background:' + heat(val, SCALE[S.period]) + ';border-radius:6px;padding:.25rem .4rem">' + pct(val) + "</span></button>";
   });
   return o;
@@ -212,17 +227,17 @@ function rrgSVG(list, selT) {
   function X(v) { return m + ((v - 100) / h + 1) / 2 * (W - 2 * m); }
   function Y(v) { return m + (1 - ((v - 100) / h + 1) / 2) * (H - 2 * m); }
   var cx = X(100), cy = Y(100);
-  var o = '<svg class="rrg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="กราฟ Relative Rotation">';
+  var o = '<svg class="rrg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + T("กราฟ Relative Rotation", "Relative Rotation chart") + '">';
   o += '<rect x="' + cx + '" y="' + m + '" width="' + (W - m - cx) + '" height="' + (cy - m) + '" fill="' + Q.leading.hex + '" opacity=".07"/>' +
     '<rect x="' + cx + '" y="' + cy + '" width="' + (W - m - cx) + '" height="' + (H - m - cy) + '" fill="' + Q.weakening.hex + '" opacity=".08"/>' +
     '<rect x="' + m + '" y="' + cy + '" width="' + (cx - m) + '" height="' + (H - m - cy) + '" fill="' + Q.lagging.hex + '" opacity=".07"/>' +
     '<rect x="' + m + '" y="' + m + '" width="' + (cx - m) + '" height="' + (cy - m) + '" fill="' + Q.improving.hex + '" opacity=".07"/>' +
     '<line x1="' + cx + '" y1="' + m + '" x2="' + cx + '" y2="' + (H - m) + '" stroke="currentColor" stroke-opacity=".22"/>' +
     '<line x1="' + m + '" y1="' + cy + '" x2="' + (W - m) + '" y2="' + cy + '" stroke="currentColor" stroke-opacity=".22"/>';
-  o += '<text x="' + (W - m - 4) + '" y="' + (m + 14) + '" text-anchor="end" font-size="11" font-weight="700" fill="' + Q.leading.hex + '">นำตลาด</text>' +
-    '<text x="' + (W - m - 4) + '" y="' + (H - m - 6) + '" text-anchor="end" font-size="11" font-weight="700" fill="' + Q.weakening.hex + '">เริ่มอ่อน</text>' +
-    '<text x="' + (m + 4) + '" y="' + (H - m - 6) + '" font-size="11" font-weight="700" fill="' + Q.lagging.hex + '">ตามหลัง</text>' +
-    '<text x="' + (m + 4) + '" y="' + (m + 14) + '" font-size="11" font-weight="700" fill="' + Q.improving.hex + '">กำลังฟื้น</text>';
+  o += '<text x="' + (W - m - 4) + '" y="' + (m + 14) + '" text-anchor="end" font-size="11" font-weight="700" fill="' + Q.leading.hex + '">' + esc(pick(Q.leading)) + '</text>' +
+    '<text x="' + (W - m - 4) + '" y="' + (H - m - 6) + '" text-anchor="end" font-size="11" font-weight="700" fill="' + Q.weakening.hex + '">' + esc(pick(Q.weakening)) + '</text>' +
+    '<text x="' + (m + 4) + '" y="' + (H - m - 6) + '" font-size="11" font-weight="700" fill="' + Q.lagging.hex + '">' + esc(pick(Q.lagging)) + '</text>' +
+    '<text x="' + (m + 4) + '" y="' + (m + 14) + '" font-size="11" font-weight="700" fill="' + Q.improving.hex + '">' + esc(pick(Q.improving)) + '</text>';
   if (sel) {
     var t = sel.rrg.tail, col = Q[sel.rrg.quad].hex;
     o += '<polyline points="' + t.map(function (p) { return X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1); }).join(" ") + '" fill="none" stroke="' + col + '" stroke-width="1.8" stroke-linejoin="round" opacity=".85"/>';
@@ -231,7 +246,7 @@ function rrgSVG(list, selT) {
   var placed = [];
   var order = pts.map(function (i) { return {i: i, x: X(i.rrg.x), y: Y(i.rrg.y)}; }).sort(function (a, b) { return a.y - b.y; });
   order.forEach(function (p) {
-    var lab = p.i.sh || p.i.disp; var right = p.x < W - 62;
+    var lab = pickSh(p.i); var right = p.x < W - 62;
     var lx = right ? p.x + 8 : p.x - 8, ly = p.y + 3.5, tries = 0;
     while (tries++ < 6 && placed.some(function (q) { return Math.abs(q.y - ly) < 11.5 && Math.abs(q.x - lx) < 46; })) ly += 11.5;
     placed.push({x: lx, y: ly}); p.lx = lx; p.ly = ly; p.right = right; p.lab = lab;
@@ -254,8 +269,8 @@ function movers(list) {
     if (a !== b) mv.push({i: i, a: a, b: b});
   });
   if (!mv.length) return "";
-  return '<div class="moves"><b>ย้ายโซนล่าสุด</b><br>' + mv.map(function (m) {
-    return '<span class="chip"><i style="background:' + Q[m.b].hex + '"></i>' + esc(m.i.sh || m.i.disp) + " " + Q[m.a].th + "→" + Q[m.b].th + "</span>";
+  return '<div class="moves"><b>' + T("ย้ายโซนล่าสุด", "Recent zone moves") + '</b><br>' + mv.map(function (m) {
+    return '<span class="chip"><i style="background:' + Q[m.b].hex + '"></i>' + esc(pickSh(m.i)) + " " + esc(pick(Q[m.a])) + "→" + esc(pick(Q[m.b])) + "</span>";
   }).join("") + "</div>";
 }
 function quadOf(x, y) { return x >= 100 ? (y >= 100 ? "leading" : "weakening") : (y < 100 ? "lagging" : "improving"); }
@@ -271,32 +286,33 @@ function dailyHTML() {
   var rank = function (c) { return c.L && c.L.st ? {bad: 0, good: 1, warn: 2, note: 3}[c.L.st.key] : 9; };
   cards.sort(function (a, b) { return rank(a) - rank(b) || a.idx - b.idx; });
   var alerts = cards.filter(function (c) { return c.L && c.L.st; }).length;
-  var o = '<div class="chead"><h3>ตัวที่ติดตาม<span class="sub">' + cards.length + " ตัว" + (alerts ? " · เตือน " + alerts : "") + '</span></h3></div>';
+  var o = '<div class="chead"><h3>' + T("ตัวที่ติดตาม", "Watching") + '<span class="sub">' + cards.length + T(" ตัว", " assets") + (alerts ? T(" · เตือน ", " · alerts ") + alerts : "") + '</span></h3></div>';
   cards.forEach(function (c) {
     var it = c.it, s = c.s, d = c.d, L = c.L;
-    var rsi = s.rsi, rtag = rsi == null ? "" : rsi >= 70 ? '<span class="tag hot">RSI ' + rsi.toFixed(0) + ' ร้อนแรง</span>' :
-      rsi <= 30 ? '<span class="tag cold">RSI ' + rsi.toFixed(0) + ' อ่อนแรง</span>' : '<span class="tag">RSI ' + rsi.toFixed(0) + '</span>';
-    var adxTag = s.adx == null ? "" : '<span class="tag">ADX ' + s.adx.toFixed(0) + (s.adx < 20 ? " ไซด์เวย์" : " มีเทรนด์") + "</span>";
-    var t200 = s.vs200 == null ? "" : '<span class="tag ' + (s.vs200 >= 0 ? "ok" : "hot") + '">' + (s.vs200 >= 0 ? "เหนือ" : "ใต้") + " 200D " + pct(s.vs200) + "</span>";
+    var rsi = s.rsi, rtag = rsi == null ? "" : rsi >= 70 ? '<span class="tag hot">RSI ' + rsi.toFixed(0) + T(' ร้อนแรง', ' hot') + '</span>' :
+      rsi <= 30 ? '<span class="tag cold">RSI ' + rsi.toFixed(0) + T(' อ่อนแรง', ' cold') + '</span>' : '<span class="tag">RSI ' + rsi.toFixed(0) + '</span>';
+    var adxTag = s.adx == null ? "" : '<span class="tag">ADX ' + s.adx.toFixed(0) + (s.adx < 20 ? T(" ไซด์เวย์", " sideways") : T(" มีเทรนด์", " trending")) + "</span>";
+    var t200 = s.vs200 == null ? "" : '<span class="tag ' + (s.vs200 >= 0 ? "ok" : "hot") + '">' + (s.vs200 >= 0 ? T("เหนือ", "Above") : T("ใต้", "Below")) + " 200D " + pct(s.vs200) + "</span>";
     var age = d && d.asof ? daysAgo(d.asof) : null;
-    o += '<article class="dcard ' + (L && L.st ? L.st.key : "") + '"><div class="dtop"><div class="id"><b>' + esc(it.s || it.t) + '</b><span>' + esc(it.th) + (d && d.bias ? " · " + (d.bias === "short" ? "Short" : "Long") : "") + '</span></div>' +
+    o += '<article class="dcard ' + (L && L.st ? L.st.key : "") + '"><div class="dtop"><div class="id"><b>' + esc(it.s || it.t) + '</b><span>' + esc(pick(it)) + (d && d.bias ? " · " + (d.bias === "short" ? "Short" : "Long") : "") + '</span></div>' +
       '<div class="pr"><b class="num">' + price(s.last) + '</b><span class="num ' + (s.chg >= 0 ? "up" : "down") + '">' + pct(s.chg, 2) + "</span></div></div>";
-    if (L && L.st) o += '<span class="alert ' + L.st.key + '">' + L.st.th + "</span>";
+    if (L && L.st) o += '<span class="alert ' + L.st.key + '">' + esc(pick(L.st)) + "</span>";
     if (L) {
-      var tp2Stat = L.tp2 != null ? ' · ห่าง TP2 <b>' + L.dTP2.toFixed(1) + '%</b>' : "";
-      var rr2Stat = L.rr2 != null ? " (1:" + L.rr2.toFixed(1) + " ที่ TP2)" : "";
+      var tp2Stat = L.tp2 != null ? ' · ' + T("ห่าง TP2 ", "TP2 dist ") + '<b>' + L.dTP2.toFixed(1) + '%</b>' : "";
+      var rr2Stat = L.rr2 != null ? " (1:" + L.rr2.toFixed(1) + T(" ที่ TP2)", " at TP2)") : "";
       // เส้นราคาย่อไปอยู่ในพื้นที่ว่างขวาแท่ง SL/TP แทนที่จะแยกเป็นแถบบางๆ ด้านบน (สูงกว่าเดิม เห็นความชันชัดขึ้น)
-      o += levelBar(d, L, s.last, s.spark) + '<div class="dstats num">ห่าง SL <b>' + L.dSL.toFixed(1) + '%</b> · ห่าง TP1 <b>' + L.dTP.toFixed(1) + '%</b>' + tp2Stat + ' · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + rr2Stat + "</b></div>";
+      o += levelBar(d, L, s.last, s.spark) + '<div class="dstats num">' + T("ห่าง SL ", "SL dist ") + '<b>' + L.dSL.toFixed(1) + '%</b> · ' + T("ห่าง TP1 ", "TP1 dist ") + '<b>' + L.dTP.toFixed(1) + '%</b>' + tp2Stat + ' · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + rr2Stat + "</b></div>";
     } else {
       o += spark(s.spark);
-      o += '<p class="empty">ยังไม่มี SL/TP — สั่ง Claude วิเคราะห์จาก desktop</p>';
+      o += '<p class="empty">' + T("ยังไม่มี SL/TP — สั่ง Claude วิเคราะห์จาก desktop", "No SL/TP yet — run Claude's analysis on desktop") + '</p>';
     }
     o += '<div class="tags">' + rtag + adxTag + t200 + "</div>";
     if (d && d.note) o += '<div class="dnote">' + esc(d.note) + "</div>";
-    if (d && d.asof) o += '<div class="dmeta' + (age > 7 ? " old" : "") + '">ระดับวิเคราะห์ ' + fmtDate(d.asof) + (age > 7 ? " (เก่า " + age + " วัน)" : "") + "</div>";
-    o += '<button class="row" style="border:0;padding:.4rem 0 0;color:var(--gold);font-weight:600;font-size:.82rem" data-open="' + esc(it.t) + '">ดูกราฟและรายละเอียด →</button></article>';
+    if (d && d.asof) o += '<div class="dmeta' + (age > 7 ? " old" : "") + '">' + T("ระดับวิเคราะห์ ", "Analysis level ") + fmtDate(d.asof) + (age > 7 ? daysAgoTxt(age) : "") + "</div>";
+    o += '<button class="row" style="border:0;padding:.4rem 0 0;color:var(--gold);font-weight:600;font-size:.82rem" data-open="' + esc(it.t) + '">' + T("ดูกราฟและรายละเอียด →", "View chart & details →") + '</button></article>';
   });
-  o += '<p class="foot">สถานะเตือนคำนวณจากราคา ณ รอบอัปเดตล่าสุด (ไม่ใช่เรียลไทม์) · ราคาเช้า/เย็นอัปเดตอัตโนมัติ ส่วน SL/TP มาจากการวิเคราะห์บน desktop</p>';
+  o += '<p class="foot">' + T('สถานะเตือนคำนวณจากราคา ณ รอบอัปเดตล่าสุด (ไม่ใช่เรียลไทม์) · ราคาเช้า/เย็นอัปเดตอัตโนมัติ ส่วน SL/TP มาจากการวิเคราะห์บน desktop',
+    "Alert status is computed from price at the latest update (not real-time) · Morning/evening prices update automatically; SL/TP come from desktop analysis") + '</p>';
   return o;
 }
 /* ================= ACCUMULATE (สะสมระยะยาว: Trend Status + Accumulation Action) =================
@@ -313,37 +329,42 @@ function accumCardsOf() {
   }).filter(Boolean);
 }
 function accumActionClass(a) { return {wait: "note", normal: "good", increase: "gold", scaledIn: "warn", pause: "bad"}[a.key] || ""; }
-function trendBadge(trend) { return '<span class="trendbadge ' + trend.key + '">' + (trend.arrow ? trend.arrow + " " : "") + esc(trend.th) + "</span>"; }
+function trendBadge(trend) { return '<span class="trendbadge ' + trend.key + '">' + (trend.arrow ? trend.arrow + " " : "") + esc(pick(trend)) + "</span>"; }
 function accumHTML() {
   var list = S.wl.accumulate || [];
   var cards = accumCardsOf();
   cards.sort(function (a, b) { return ACCUM_SORT_RANK[a.action.key] - ACCUM_SORT_RANK[b.action.key] || a.idx - b.idx; });
   var alerts = cards.filter(function (c) { return c.action.key === "pause" || c.action.key === "increase" || c.action.key === "scaledIn"; }).length;
-  var o = '<div class="chead"><h3>สะสมระยะยาว<span class="sub">' + cards.length + " ตัว" + (alerts ? " · น่าสนใจ " + alerts : "") + '</span></h3>' +
-    '<button class="help" data-accum-glossary="1" aria-label="คำอธิบายตัวชี้วัด">?</button></div>';
+  var o = '<div class="chead"><h3>' + T("สะสมระยะยาว", "Long-term Accumulation") + '<span class="sub">' + cards.length + T(" ตัว", " assets") + (alerts ? T(" · น่าสนใจ ", " · notable ") + alerts : "") + '</span></h3>' +
+    '<button class="help" data-accum-glossary="1" aria-label="' + T("คำอธิบายตัวชี้วัด", "Metric glossary") + '">?</button></div>';
   if (!list.length) {
-    o += '<p class="empty">ยังไม่มีรายการ — เพิ่มตัวที่จะสะสมได้ที่ watchlist.json → "accumulate"</p>';
+    o += '<p class="empty">' + T('ยังไม่มีรายการ — เพิ่มตัวที่จะสะสมได้ที่ watchlist.json → "accumulate"', 'No items yet — add assets to accumulate in watchlist.json → "accumulate"') + '</p>';
   }
   cards.forEach(function (c) {
     var it = c.it, s = c.s, trend = c.trend, zone = c.zone, action = c.action, adxS = c.adxS;
+    var ser = S.series && S.series.series ? S.series.series[it.t] : null;
+    function maVal(arr) { return arr && arr.length ? arr[arr.length - 1] : null; }
     var rows = [
-      {lbl: "MA50", v: s.vs50},
-      {lbl: "MA100", v: s.vs100, hit: zone.key === "C"},
-      {lbl: "MA200", v: s.vs200},
+      {lbl: "MA50", v: ser ? maVal(ser.m50) : null, d: s.vs50},
+      {lbl: "MA100", v: ser ? maVal(ser.m100) : null, d: s.vs100, hit: zone.key === "C"},
+      {lbl: "MA200", v: ser ? maVal(ser.m200) : null, d: s.vs200},
     ];
     o += '<article class="dcard ' + (trend.key === "red" ? "bad" : trend.key === "yellow" ? "warn" : "") + '">' +
-      '<div class="dtop"><div class="id"><b>' + esc(it.s || it.t) + '</b><span>' + esc(it.th) + '</span></div>' +
+      '<div class="dtop"><div class="id"><b>' + esc(it.s || it.t) + '</b><span>' + esc(pick(it)) + '</span></div>' +
       '<div class="pr"><b class="num">' + price(s.last) + '</b><span class="num ' + (s.chg >= 0 ? "up" : "down") + '">' + pct(s.chg, 2) + "</span></div></div>";
-    o += '<div class="trendrow">' + trendBadge(trend) + '<span class="alert ' + accumActionClass(action) + '">' + esc(action.th) + "</span></div>";
-    o += spark(s.spark);
-    o += '<div class="malines">' + rows.map(function (r) {
-      return '<div class="maline' + (r.hit ? " hit" : "") + '"><span>' + r.lbl + "</span><b class=\"num\">" + (r.v == null ? "–" : pct(r.v)) + "</b></div>";
-    }).join("") + "</div>";
-    var adxTxt = s.adx == null ? "ADX –" : "ADX " + s.adx.toFixed(1) + " (" + adxS.th + ")";
-    o += '<div class="accummeta">' + (s.vs100 == null ? "" : "ห่าง MA100 " + pct(s.vs100) + " · ") + adxTxt + "</div>";
-    o += '<button class="row" style="border:0;padding:.4rem 0 0;color:var(--gold);font-weight:600;font-size:.82rem" data-open="' + esc(it.t) + '">ดูกราฟและรายละเอียด →</button></article>';
+    o += '<div class="trendrow">' + trendBadge(trend) + '<span class="alert ' + accumActionClass(action) + '">' + esc(pick(action)) + "</span></div>";
+    // กราฟซ้าย + กล่อง MA50/100/200 (ราคา + %) เรียงบนลงล่างทางขวา — เหมือนแท็บ "รายวัน"
+    o += '<div class="amrow"><div class="amchart">' + sparkTall(s.spark) + '</div><div class="malines vstack">' + rows.map(function (r) {
+      return '<div class="maline' + (r.hit ? " hit" : "") + '"><span>' + r.lbl + '</span><b class="num">' + (r.v == null ? "–" : price(r.v)) + "</b>" +
+        '<span class="num ' + (r.d >= 0 ? "up" : "down") + '" style="display:block;font-size:.68rem">' + (r.d == null ? "" : pct(r.d)) + "</span></div>";
+    }).join("") + "</div></div>";
+    var rsiTxt = s.rsi == null ? "" : "RSI " + s.rsi.toFixed(0);
+    var adxTxt = s.adx == null ? "ADX –" : "ADX " + s.adx.toFixed(1) + " (" + esc(pick(adxS)) + ")";
+    o += '<div class="accummeta">' + [rsiTxt, adxTxt].filter(Boolean).join(" · ") + "</div>";
+    o += '<button class="row" style="border:0;padding:.4rem 0 0;color:var(--gold);font-weight:600;font-size:.82rem" data-open="' + esc(it.t) + '">' + T("ดูกราฟและรายละเอียด →", "View chart & details →") + '</button></article>';
   });
-  o += '<p class="foot">Trend (MA200/MA50) บอกโครงสร้างระยะยาว · Zone (MA100) บอกจังหวะเข้า · Action = Zone ที่ถูก Trend ครอบเพดานไว้เสมอ (หลุด MA200 = ชะลอทุกกรณี) — คำนวณจากราคาจริงอัตโนมัติ ไม่ใช่คำแนะนำการลงทุน</p>';
+  o += '<p class="foot">' + T('Trend (MA200/MA50) บอกโครงสร้างระยะยาว · Zone (MA100) บอกจังหวะเข้า · Action = Zone ที่ถูก Trend ครอบเพดานไว้เสมอ (หลุด MA200 = ชะลอทุกกรณี) — คำนวณจากราคาจริงอัตโนมัติ ไม่ใช่คำแนะนำการลงทุน',
+    'Trend (MA200/MA50) shows long-term structure · Zone (MA100) shows entry timing · Action = Zone always capped by Trend (below MA200 = pause in every case) — computed automatically from real prices, not investment advice') + '</p>';
   return o;
 }
 
@@ -381,8 +402,8 @@ function accumSummaryBullets(trend, zone, action) {
 }
 function accumDecisionHTML(c) {
   var trend = c.trend, zone = c.zone, action = c.action;
-  var o = '<div class="sectionhd"><h2>สรุปการตัดสินใจ</h2><button class="help" data-accum-glossary="1" aria-label="คำอธิบายตัวชี้วัด">?</button></div>';
-  o += '<div class="accumdecision"><div class="trendrow">' + trendBadge(trend) + '<span class="alert ' + accumActionClass(action) + '">' + esc(action.th) + "</span></div>" +
+  var o = '<div class="sectionhd"><h2>' + T("สรุปการตัดสินใจ", "Decision summary") + '</h2><button class="help" data-accum-glossary="1" aria-label="' + T("คำอธิบายตัวชี้วัด", "Metric glossary") + '">?</button></div>';
+  o += '<div class="accumdecision"><div class="trendrow">' + trendBadge(trend) + '<span class="alert ' + accumActionClass(action) + '">' + esc(pick(action)) + "</span></div>" +
     '<p class="accumexplain">' + esc(accumExplain(trend, zone, action)) + "</p></div>";
   return o;
 }
@@ -401,8 +422,8 @@ function accumKpiHTML(c, ser) {
   }).join("") + "</div>";
   var macdOk = s.macd != null && s.macdSignal != null;
   o += '<div class="gauges compact' + (macdOk ? " g3" : "") + '">' +
-    gauge("RSI", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], "เสริม ไม่ใช่สัญญาณ") +
-    gauge("ADX", s.adx, 0, 50, [[0, 20, "var(--sideways)"], [20, 50, "var(--strong)"]], c.adxS.th);
+    gauge("RSI", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], T("เสริม ไม่ใช่สัญญาณ", "Context, not a signal")) +
+    gauge("ADX", s.adx, 0, 50, [[0, 20, "var(--sideways)"], [20, 50, "var(--strong)"]], esc(pick(c.adxS)));
   if (macdOk) {
     o += '<div class="gauge"><small>MACD</small><b class="num ' + (s.macd >= s.macdSignal ? "up" : "down") + '">' + s.macd.toFixed(2) + '</b>' +
       '<div class="rng"><span>Signal ' + s.macdSignal.toFixed(2) + '</span></div></div>';
@@ -412,7 +433,7 @@ function accumKpiHTML(c, ser) {
 }
 function accumSummaryHTML(c) {
   var bullets = accumSummaryBullets(c.trend, c.zone, c.action);
-  return '<div class="accumsummary"><h4>🎯 แนวทางการสะสม</h4><ul>' + bullets.map(function (b) { return "<li>" + esc(b) + "</li>"; }).join("") + "</ul></div>";
+  return '<div class="accumsummary"><h4>🎯 ' + T("แนวทางการสะสม", "Accumulation approach") + '</h4><ul>' + bullets.map(function (b) { return "<li>" + esc(b) + "</li>"; }).join("") + "</ul></div>";
 }
 function accumGlossarySheet() {
   var TH = Rules.ACCUM_THRESHOLDS, AD = Rules.ADX_THRESHOLDS;
@@ -498,7 +519,7 @@ function findItemMeta(t) {
   return meta;
 }
 function detailHTML(t) {
-  var s = S.px.symbols[t]; if (!s) return '<p class="empty">ไม่พบข้อมูล</p>';
+  var s = S.px.symbols[t]; if (!s) return '<p class="empty">' + T("ไม่พบข้อมูล", "Data not found") + '</p>';
   var meta = findItemMeta(t) || {t: t, th: t, en: t};
   var disp = meta.s || t;
   // "สรุปการตัดสินใจ" + KPI สะสม แสดงเฉพาะเมื่อเปิดจากแท็บ "สะสม" เท่านั้น (ไม่แตะหน้า Detail ของ "รายวัน")
@@ -508,7 +529,8 @@ function detailHTML(t) {
     var trend = Rules.getTrendStatus(s), zone = Rules.getAccumulationZone(s);
     ac = {s: s, trend: trend, zone: zone, action: Rules.getAccumulationAction(trend, zone), adxS: Rules.getADXStrength(s.adx)};
   }
-  var o = '<div class="dethead"><div class="nm">' + esc(disp) + '</div><div class="sub">' + esc(meta.th || "") + (meta.en ? " · " + esc(meta.en) : "") + "</div></div>";
+  var subTxt = S.lang === "en" ? esc(meta.en || meta.th || "") : (esc(meta.th || "") + (meta.en ? " · " + esc(meta.en) : ""));
+  var o = '<div class="dethead"><div class="nm">' + esc(disp) + '</div><div class="sub">' + subTxt + "</div></div>";
   o += '<div class="detprice"><b class="num">' + price(s.last) + '</b><span class="num ' + (s.chg >= 0 ? "up" : "down") + '">' + pct(s.chg, 2) + '</span></div>';
 
   if (ac) o += accumDecisionHTML(ac);
@@ -519,14 +541,14 @@ function detailHTML(t) {
       return '<button data-detp="' + k + '" aria-pressed="' + (S.detPeriod === k) + '">' + k.toUpperCase() + "</button>";
     }).join("") + "</div>";
     o += lineChart(ser, DET_PERIODS[S.detPeriod]);
-    o += '<div class="chartlegend"><span><i style="background:currentColor"></i>ราคาปิด</span><span><i style="background:var(--ma50)"></i>MA50</span><span><i style="background:var(--ma100)"></i>MA100 (อ้างอิงสะสม)</span><span><i style="background:var(--ma200)"></i>MA200</span></div>';
+    o += '<div class="chartlegend"><span><i style="background:currentColor"></i>' + T("ราคาปิด", "Close price") + '</span><span><i style="background:var(--ma50)"></i>MA50</span><span><i style="background:var(--ma100)"></i>MA100 (' + T("อ้างอิงสะสม", "accum ref") + ')</span><span><i style="background:var(--ma200)"></i>MA200</span></div>';
   }
 
   if (ac) {
     o += accumKpiHTML(ac, ser);
   } else {
-    o += '<div class="gauges">' + gauge("RSI (14)", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], s.rsi == null ? "" : s.rsi >= 70 ? "โมเมนตัมร้อนแรง" : s.rsi <= 30 ? "โมเมนตัมอ่อนแรง" : "โมเมนตัมปกติ") +
-      gauge("ADX (14)", s.adx, 0, 50, [[0, 20, "var(--sideways)"], [20, 50, "var(--strong)"]], s.adx == null ? "" : s.adx < 20 ? "ไม่มีเทรนด์ชัดเจน" : "มีเทรนด์ชัดเจน") + "</div>";
+    o += '<div class="gauges">' + gauge("RSI (14)", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], s.rsi == null ? "" : s.rsi >= 70 ? T("โมเมนตัมร้อนแรง", "Momentum overheated") : s.rsi <= 30 ? T("โมเมนตัมอ่อนแรง", "Momentum weak") : T("โมเมนตัมปกติ", "Momentum normal")) +
+      gauge("ADX (14)", s.adx, 0, 50, [[0, 20, "var(--sideways)"], [20, 50, "var(--strong)"]], s.adx == null ? "" : s.adx < 20 ? T("ไม่มีเทรนด์ชัดเจน", "No clear trend") : T("มีเทรนด์ชัดเจน", "Clear trend")) + "</div>";
   }
 
   // RRG / Elliott Wave / มุมมองสัปดาห์ / แผนเทรด SL-TP เป็นข้อมูลฝั่งเทรดระยะสั้น
@@ -536,8 +558,8 @@ function detailHTML(t) {
   if (meta.group && meta.group.rrg && s.rrg_by && s.rrg_by[meta.group.benchmark]) {
     var r = s.rrg_by[meta.group.benchmark];
     extraLabels.push("RRG");
-    extraHtml += '<div class="viewbox"><span class="lbl">ตำแหน่งใน RRG (เทียบ ' + esc(meta.group.benchmark) + ')</span><br>' +
-      '<span class="chip"><i style="background:' + Q[r.quad].hex + '"></i>' + Q[r.quad].th + '</span> RS-Ratio ' + r.x.toFixed(2) + ' · RS-Momentum ' + r.y.toFixed(2) + '</div>';
+    extraHtml += '<div class="viewbox"><span class="lbl">' + T("ตำแหน่งใน RRG (เทียบ ", "RRG position (vs ") + esc(meta.group.benchmark) + ')</span><br>' +
+      '<span class="chip"><i style="background:' + Q[r.quad].hex + '"></i>' + esc(pick(Q[r.quad])) + '</span> RS-Ratio ' + r.x.toFixed(2) + ' · RS-Momentum ' + r.y.toFixed(2) + '</div>';
   }
 
   var wv = S.an && S.an.waves ? S.an.waves[t] : null;
@@ -547,8 +569,8 @@ function detailHTML(t) {
   var view = S.an && S.an.weekly && S.an.weekly.views ? S.an.weekly.views[t] : null;
   if (view) {
     var v = VIEW[view.view || view];
-    extraLabels.push("มุมมองสัปดาห์");
-    extraHtml += '<div class="viewbox"><span class="lbl">มุมมองสัปดาห์ (Claude)</span><br><b class="' + (v ? v.cl : "") + '">' + (v ? v.ic + " " + v.th : "–") + '</b>' + (view.note ? " — " + esc(view.note) : "") + "</div>";
+    extraLabels.push(T("มุมมองสัปดาห์", "Weekly view"));
+    extraHtml += '<div class="viewbox"><span class="lbl">' + T("มุมมองสัปดาห์ (Claude)", "Weekly view (Claude)") + '</span><br><b class="' + (v ? v.cl : "") + '">' + (v ? v.ic + " " + esc(pick(v)) : "–") + '</b>' + (view.note ? " — " + esc(view.note) : "") + "</div>";
   }
 
   var d = S.an && S.an.daily ? S.an.daily[t] : null;
@@ -556,23 +578,23 @@ function detailHTML(t) {
   if (L) {
     var age = d.asof ? daysAgo(d.asof) : null;
     extraLabels.push("SL/TP");
-    extraHtml += '<div class="sectionhd"><h2>แผนเทรด (SL/TP)</h2></div><div class="plan">' + levelBar(d, L, s.last) +
-      '<div class="dstats num">ห่าง SL <b>' + L.dSL.toFixed(1) + '%</b> · ห่าง TP <b>' + L.dTP.toFixed(1) + '%</b> · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + '</b></div>' +
+    extraHtml += '<div class="sectionhd"><h2>' + T("แผนเทรด (SL/TP)", "Trade plan (SL/TP)") + '</h2></div><div class="plan">' + levelBar(d, L, s.last) +
+      '<div class="dstats num">' + T("ห่าง SL ", "SL dist ") + '<b>' + L.dSL.toFixed(1) + '%</b> · ' + T("ห่าง TP ", "TP dist ") + '<b>' + L.dTP.toFixed(1) + '%</b> · R:R <b>' + (L.rr ? "1:" + L.rr.toFixed(1) : "–") + '</b></div>' +
       (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : "") +
-      '<div class="dmeta' + (age > 7 ? " old" : "") + '">ระดับวิเคราะห์ ' + fmtDate(d.asof) + (age > 7 ? " (เก่า " + age + " วัน)" : "") + '</div></div>';
+      '<div class="dmeta' + (age > 7 ? " old" : "") + '">' + T("ระดับวิเคราะห์ ", "Analysis level ") + fmtDate(d.asof) + (age > 7 ? daysAgoTxt(age) : "") + '</div></div>';
   }
 
   if (ac) {
     // แท็บสะสม: สรุปสั้นด้านบนก่อน แล้วค่อยพับรายละเอียดเสริมไว้ให้กดเปิดเอง
     o += accumSummaryHTML(ac);
     if (extraHtml) {
-      o += '<details class="moreinfo"><summary>ดูข้อมูลเพิ่มเติม · ' + esc(extraLabels.join(" · ")) + '</summary><div class="moreinfo-body">' + extraHtml + "</div></details>";
+      o += '<details class="moreinfo"><summary>' + T("ดูข้อมูลเพิ่มเติม · ", "More info · ") + esc(extraLabels.join(" · ")) + '</summary><div class="moreinfo-body">' + extraHtml + "</div></details>";
     }
   } else {
     o += extraHtml;
   }
 
-  o += '<p class="foot">ข้อมูลราคาถึง ' + fmtDate(s.asof) + ' · ตัวชี้วัดทั้งหมดเป็นข้อมูลเชิงโครงสร้าง ไม่ใช่สัญญาณซื้อขาย</p>';
+  o += '<p class="foot">' + T("ข้อมูลราคาถึง ", "Price data through ") + fmtDate(s.asof) + T(' · ตัวชี้วัดทั้งหมดเป็นข้อมูลเชิงโครงสร้าง ไม่ใช่สัญญาณซื้อขาย', ' · All metrics are structural data, not a trading signal') + '</p>';
   return o;
 }
 function gauge(label, val, lo, hi, zones, sub) {
@@ -588,13 +610,14 @@ function waveBox(wv) {
   var chain = [1, 2, 3, 4, 5].map(function (n) {
     return '<span class="nd' + (n === wv.current ? " now" : "") + '">' + n + "</span>" + (n < 5 ? '<span class="ln"></span>' : "");
   }).join("");
-  var o = '<div class="sectionhd"><h2>Elliott Wave (ความเห็น)</h2></div><div class="wavewrap">' +
-    '<div class="wavemeta">คลื่นปัจจุบัน: <b>Wave ' + wv.current + '</b>' + (wv.alt ? " · ทางเลือก: Wave " + wv.alt + " (alt)" : "") + '</div>' +
+  var o = '<div class="sectionhd"><h2>' + T("Elliott Wave (ความเห็น)", "Elliott Wave (opinion)") + '</h2></div><div class="wavewrap">' +
+    '<div class="wavemeta">' + T("คลื่นปัจจุบัน: ", "Current wave: ") + '<b>Wave ' + wv.current + '</b>' + (wv.alt ? T(" · ทางเลือก: Wave ", " · alt: Wave ") + wv.alt + " (alt)" : "") + '</div>' +
     '<div class="wavechain">' + chain + "</div>";
-  if (wv.keyLevel) o += '<div class="wavemeta">จุดเปลี่ยนสำคัญ: <b class="num">' + price(wv.keyLevel.price) + "</b>" + (wv.keyLevel.note ? " — " + esc(wv.keyLevel.note) : "") + "</div>";
+  if (wv.keyLevel) o += '<div class="wavemeta">' + T("จุดเปลี่ยนสำคัญ: ", "Key level: ") + '<b class="num">' + price(wv.keyLevel.price) + "</b>" + (wv.keyLevel.note ? " — " + esc(wv.keyLevel.note) : "") + "</div>";
   if (wv.note) o += '<div class="wavemeta">' + esc(wv.note) + "</div>";
-  o += '<div class="wavemeta' + (age > 10 ? " old" : "") + '">ความเห็น ณ วันที่ ' + fmtDate(wv.asof) + (age > 10 ? " (เก่า " + age + " วัน)" : "") + '</div>' +
-    '<div class="disclaim"><span class="ic">⚠️</span><span>นี่เป็นมุมมองเชิงวิจารณญาณ ไม่ใช่สัญญาณซื้อขาย โปรดใช้ดุลยพินิจและบริหารความเสี่ยงเสมอ</span></div></div>';
+  o += '<div class="wavemeta' + (age > 10 ? " old" : "") + '">' + T("ความเห็น ณ วันที่ ", "Opinion as of ") + fmtDate(wv.asof) + (age > 10 ? daysAgoTxt(age) : "") + '</div>' +
+    '<div class="disclaim"><span class="ic">⚠️</span><span>' + T("นี่เป็นมุมมองเชิงวิจารณญาณ ไม่ใช่สัญญาณซื้อขาย โปรดใช้ดุลยพินิจและบริหารความเสี่ยงเสมอ",
+      "This is a discretionary opinion, not a trading signal. Always use judgment and manage risk.") + '</span></div></div>';
   return o;
 }
 function lineChart(ser, n) {
@@ -612,7 +635,7 @@ function lineChart(ser, n) {
     var w = width != null ? width : (dash ? 1.3 : 1.8);
     return '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + stroke + '" stroke-width="' + w + '"' + (dash ? ' stroke-dasharray="' + dash + '"' : "") + ' stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
   }
-  var o = '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="กราฟราคาพร้อมเส้นค่าเฉลี่ย">';
+  var o = '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + T("กราฟราคาพร้อมเส้นค่าเฉลี่ย", "Price chart with moving averages") + '">';
   // MA200/MA50 หนาเท่ากันเพื่อเน้นโครงสร้างหลัก (ส้ม/เขียวเข้ม) · MA100 (เหลืองเข้ม) เป็นเส้นประจุดอ้างอิงสะสม · ราคาปิดวาดทับบนสุด
   o += line(m200, "var(--ma200)", null, 2.4) + line(m100, "var(--ma100)", "3,2") + line(m50, "var(--ma50)", null, 2.4) + line(c, "currentColor");
   o += '<text x="' + pad + '" y="' + (H - 4) + '" font-size="9" fill="currentColor" opacity=".55">' + fmtDate(d[0]) + '</text>';
@@ -621,7 +644,7 @@ function lineChart(ser, n) {
 }
 
 /* ---------- sheets: RRG help + เกณฑ์การประเมิน ---------- */
-function openSheet(html) { $("#pane").innerHTML = html + '<button class="close" id="closeSheet">ปิด</button>'; $("#sheet").hidden = false; }
+function openSheet(html) { $("#pane").innerHTML = html + '<button class="close" id="closeSheet">' + T("ปิด", "Close") + '</button>'; $("#sheet").hidden = false; }
 function closeSheet() { $("#sheet").hidden = true; }
 function explainSheet() {
   openSheet('<h3>อ่านกราฟนี้อย่างไร</h3>' +
@@ -662,13 +685,13 @@ function render() {
   if (!S.px) return;
   // banner นี้บอกเฉพาะสถานะ "ราคา" เท่านั้น — สถานะ "มุมมองวิเคราะห์" (analysis.json) มีป้ายของตัวเองใน weeklyNote()/waveBox()/SL-TP
   // เพราะราคาจะกลายเป็นของจริงก่อนเสมอ (อัตโนมัติ) ส่วนการวิเคราะห์รอ Claude แยกต่างหาก การรวมเงื่อนไขไว้ที่เดียวทำให้ banner นี้ค้างแสดงแม้ราคาจริงเข้ามาแล้ว
-  var banner = (S.px.demo ? '<div class="banner">ราคายังเป็นข้อมูลตัวอย่าง — จะถูกแทนที่เมื่อรัน GitHub Actions ครั้งแรก</div>' : "") +
-    (S.px.failed && S.px.failed.length ? '<div class="banner">ดึงราคาไม่ได้: ' + esc(S.px.failed.join(", ")) + '</div>' : "");
+  var banner = (S.px.demo ? '<div class="banner">' + T("ราคายังเป็นข้อมูลตัวอย่าง — จะถูกแทนที่เมื่อรัน GitHub Actions ครั้งแรก", "Prices are still sample data — will be replaced once GitHub Actions runs for the first time") + '</div>' : "") +
+    (S.px.failed && S.px.failed.length ? '<div class="banner">' + T("ดึงราคาไม่ได้: ", "Failed to fetch prices: ") + esc(S.px.failed.join(", ")) + '</div>' : "");
 
-  if (S.screen === "overview") { setHeader("Market Structure", "ภาพรวมตลาด", false); main.innerHTML = banner + overviewHTML(); }
-  else if (S.screen === "list") { setHeader("รายการที่สนใจ", null, false); main.innerHTML = banner + listHTML(); }
-  else if (S.screen === "daily") { setHeader("รายวัน", "ตัวที่เล่น + SL/TP", false); main.innerHTML = banner + dailyHTML(); }
-  else if (S.screen === "accum") { setHeader("สะสมระยะยาว", "Trend ระยะยาว + จังหวะสะสม", false); main.innerHTML = banner + accumHTML(); }
+  if (S.screen === "overview") { setHeader("Market Structure", T("ภาพรวมตลาด", "Market overview"), false); main.innerHTML = banner + overviewHTML(); }
+  else if (S.screen === "list") { setHeader(T("รายการที่สนใจ", "Watchlist"), null, false); main.innerHTML = banner + listHTML(); }
+  else if (S.screen === "daily") { setHeader(T("รายวัน", "Daily"), T("ตัวที่เล่น + SL/TP", "Trading picks + SL/TP"), false); main.innerHTML = banner + dailyHTML(); }
+  else if (S.screen === "accum") { setHeader(T("สะสมระยะยาว", "Long-term Accumulation"), T("Trend ระยะยาว + จังหวะสะสม", "Long-term trend + accumulation timing"), false); main.innerHTML = banner + accumHTML(); }
   else if (S.screen === "detail") {
     var meta = findItemMeta(S.sel);
     setHeader(meta ? (meta.s || meta.t) : S.sel, null, true);
@@ -677,8 +700,9 @@ function render() {
 }
 
 document.addEventListener("click", function (e) {
-  var t = e.target.closest("[data-tab],[data-group],[data-gview],[data-tmode],[data-period],[data-detp],[data-open],[data-t],[data-goto-group],[data-accum-glossary],#help,#critBtn,[data-crit],#closeSheet,#backBtn,#themeBtn,#fsBtn,#sheet");
+  var t = e.target.closest("[data-tab],[data-group],[data-gview],[data-tmode],[data-period],[data-detp],[data-open],[data-t],[data-goto-group],[data-accum-glossary],#help,#critBtn,[data-crit],#closeSheet,#backBtn,#themeBtn,#fsBtn,#langBtn,#sheet");
   if (!t) return;
+  if (t.id === "langBtn") { toggleLang(); return; }
   if (t.id === "fsBtn") { S.fs = (S.fs % 3) + 1; applyFs(); store.set("mb.fs", S.fs); return; }
   if (t.id === "themeBtn") { toggleTheme(); return; }
   if (t.id === "backBtn") { S.screen = S.from; render(); scrollTo(0, 0); return; }
@@ -703,21 +727,38 @@ document.addEventListener("keydown", function (e) { if (e.key === "Escape") clos
 function applyTheme() {
   document.documentElement.setAttribute("data-theme", S.theme);
   $("#themeBtn").textContent = S.theme === "dark" ? "🌙" : "☀️";
-  $("#themeBtn").setAttribute("aria-label", S.theme === "dark" ? "สลับเป็นธีมสว่าง" : "สลับเป็นธีมมืด");
+  $("#themeBtn").setAttribute("aria-label", S.theme === "dark" ? T("สลับเป็นธีมสว่าง", "Switch to light theme") : T("สลับเป็นธีมมืด", "Switch to dark theme"));
   document.querySelector('meta[name="theme-color"]').setAttribute("content", S.theme === "dark" ? "#0E1420" : "#ffffff");
 }
 function toggleTheme() { S.theme = S.theme === "dark" ? "light" : "dark"; store.set("mb.theme", S.theme); applyTheme(); }
 function applyFs() { document.documentElement.classList.remove("fs2", "fs3"); if (S.fs > 1) document.documentElement.classList.add("fs" + S.fs); }
 
+/* ---------- ภาษา (TH/EN) — ไทย: ผสมได้ตามที่ทำมา / อังกฤษ: ทุกคำต้องเป็นอังกฤษ, ค่าเริ่มต้นคือ EN ---------- */
+function applyLang() {
+  document.documentElement.lang = S.lang;
+  document.querySelectorAll("[data-th]").forEach(function (el) {
+    el.textContent = S.lang === "en" ? (el.dataset.en || el.dataset.th) : el.dataset.th;
+  });
+  document.querySelectorAll("[data-th-aria]").forEach(function (el) {
+    el.setAttribute("aria-label", S.lang === "en" ? (el.dataset.enAria || el.dataset.thAria) : el.dataset.thAria);
+  });
+  var lb = $("#langBtn"); if (lb) lb.textContent = S.lang.toUpperCase();
+  applyTheme();
+  render();
+}
+function toggleLang() { S.lang = S.lang === "en" ? "th" : "en"; store.set("mb.lang", S.lang); applyLang(); }
+
 /* ---------- init ---------- */
 (function init() {
+  S.lang = store.get("mb.lang") === "th" ? "th" : "en";
   S.theme = store.get("mb.theme") === "dark" ? "dark" : "light"; applyTheme();
   S.fs = +store.get("mb.fs") || 1; applyFs();
   S.screen = store.get("mb.screen") || "overview";
   S.group = store.get("mb.group") || "sector";
+  applyLang();
   load().then(function () { renderFresh(); render(); }).catch(function (err) {
-    $("#main").innerHTML = '<div class="banner">โหลดข้อมูลไม่สำเร็จ (' + esc(err.message) + ') — เปิดครั้งแรกต้องมีอินเทอร์เน็ต หลังจากนั้นใช้ออฟไลน์ได้</div>';
-    $("#fresh").textContent = "ออฟไลน์";
+    $("#main").innerHTML = '<div class="banner">' + T("โหลดข้อมูลไม่สำเร็จ (", "Failed to load data (") + esc(err.message) + T(") — เปิดครั้งแรกต้องมีอินเทอร์เน็ต หลังจากนั้นใช้ออฟไลน์ได้", ") — an internet connection is required the first time; offline works after that") + '</div>';
+    var fr = $("#fresh"); if (fr) fr.textContent = T("ออฟไลน์", "Offline");
   });
   if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) navigator.serviceWorker.register("sw.js").catch(function () {});
 })();

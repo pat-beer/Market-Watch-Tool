@@ -41,6 +41,11 @@ function pick(o) { if (!o) return ""; return S.lang === "en" ? (o.en != null ? o
 function pickShort(o) { if (!o) return ""; if (S.lang === "en") return o.shortEn != null ? o.shortEn : (o.en != null ? o.en : o.short); return o.short; }
 function groupLabel(g) { return S.lang === "en" ? (g.labelEn || g.label) : g.label; }
 function pickSh(it) { return S.lang === "en" ? (it.shEn || it.sh || it.disp) : (it.sh || it.disp); }
+/** แถว MA (label + ราคา + % ในบรรทัดเดียวกัน ไม่ยืดพื้นที่ลงไป) ใช้ร่วมกันทั้งการ์ดสะสมและหน้า Detail */
+function maLineHTML(r) {
+  return '<div class="maline' + (r.hit ? " hit" : "") + '"><span>' + r.lbl + '</span><div class="mlval"><b class="num">' + (r.v == null ? "–" : price(r.v)) + "</b>" +
+    '<span class="num ' + (r.d >= 0 ? "up" : "down") + '">' + (r.d == null ? "" : pct(r.d)) + "</span></div></div>";
+}
 function daysAgoTxt(n) { return T(" (เก่า " + n + " วัน)", " (" + n + "d old)"); }
 
 function trendArrow(trend) { return trend === "up" ? "↑" : trend === "down" ? "↓" : "→"; }
@@ -354,10 +359,7 @@ function accumHTML() {
       '<div class="pr"><b class="num">' + price(s.last) + '</b><span class="num ' + (s.chg >= 0 ? "up" : "down") + '">' + pct(s.chg, 2) + "</span></div></div>";
     o += '<div class="trendrow">' + trendBadge(trend) + '<span class="alert ' + accumActionClass(action) + '">' + esc(pick(action)) + "</span></div>";
     // กราฟซ้าย + กล่อง MA50/100/200 (ราคา + %) เรียงบนลงล่างทางขวา — เหมือนแท็บ "รายวัน"
-    o += '<div class="amrow"><div class="amchart">' + sparkTall(s.spark) + '</div><div class="malines vstack">' + rows.map(function (r) {
-      return '<div class="maline' + (r.hit ? " hit" : "") + '"><span>' + r.lbl + '</span><b class="num">' + (r.v == null ? "–" : price(r.v)) + "</b>" +
-        '<span class="num ' + (r.d >= 0 ? "up" : "down") + '" style="display:block;font-size:.68rem">' + (r.d == null ? "" : pct(r.d)) + "</span></div>";
-    }).join("") + "</div></div>";
+    o += '<div class="amrow"><div class="amchart">' + sparkTall(s.spark) + '</div><div class="malines vstack">' + rows.map(maLineHTML).join("") + "</div></div>";
     var rsiTxt = s.rsi == null ? "" : "RSI " + s.rsi.toFixed(0);
     var adxTxt = s.adx == null ? "ADX –" : "ADX " + s.adx.toFixed(1) + " (" + esc(pick(adxS)) + ")";
     o += '<div class="accummeta">' + [rsiTxt, adxTxt].filter(Boolean).join(" · ") + "</div>";
@@ -416,10 +418,7 @@ function accumKpiHTML(c, ser) {
     {lbl: "MA100 ★", v: m100, d: s.vs100, hit: c.zone.key === "C"},
     {lbl: "MA200", v: m200, d: s.vs200, hit: false},
   ];
-  var o = '<div class="malines compact">' + rows.map(function (r) {
-    return '<div class="maline' + (r.hit ? " hit" : "") + '"><span>' + r.lbl + '</span><b class="num">' + (r.v == null ? "–" : price(r.v)) + '</b>' +
-      '<span class="num ' + (r.d >= 0 ? "up" : "down") + '" style="display:block;font-size:.68rem">' + (r.d == null ? "" : pct(r.d)) + "</span></div>";
-  }).join("") + "</div>";
+  var o = '<div class="malines compact">' + rows.map(maLineHTML).join("") + "</div>";
   var macdOk = s.macd != null && s.macdSignal != null;
   o += '<div class="gauges compact' + (macdOk ? " g3" : "") + '">' +
     gauge("RSI", s.rsi, 0, 100, [[0, 30, "var(--weak)"], [30, 70, "var(--strong)"], [70, 100, "var(--weak)"]], T("เสริม ไม่ใช่สัญญาณ", "Context, not a signal")) +

@@ -96,7 +96,7 @@ function overviewHTML() {
   var o = regimeCard(reg);
   o += weeklyNote();
 
-  o += '<div class="sectionhd"><h2>' + T("ภาพรวมรายกลุ่ม", "Group overview") + '</h2></div>';
+  o += '<div class="sectionhd"><h2>' + T("ภาพรวมรายกลุ่ม", "Group overview") + '</h2><button class="help" data-group-help="1" aria-label="' + T("% นี้คืออะไร", "What does this % mean?") + '">?</button></div>';
   o += '<div class="tiles">';
   S.wl.groups.forEach(function (g) {
     var gs = Rules.groupSummary(g.items, S.px.symbols);
@@ -108,6 +108,9 @@ function overviewHTML() {
       '<span class="bar"><i style="width:' + (pct200 || 0) + '%;background:var(--' + domKey + ')"></i></span></button>';
   });
   o += "</div>";
+  o += '<div class="minilegend"><span><i style="background:var(--weak)"></i>' + T("อ่อนแอ ≤40%", "Weak ≤40%") + '</span>' +
+    '<span><i style="background:var(--caution)"></i>' + T("กลางๆ 40–60%", "Mixed 40–60%") + '</span>' +
+    '<span><i style="background:var(--strong)"></i>' + T("แข็งแรง ≥60%", "Strong ≥60%") + '</span></div>';
 
   o += '<div class="sectionhd"><h2>' + T("สัดส่วนเหนือเส้น 200 วัน", "% above 200-day line") + '</h2><button class="help" id="critBtn" aria-label="' + T("ดูเกณฑ์การประเมิน", "View evaluation criteria") + '">?</button></div>';
   S.wl.groups.forEach(function (g) {
@@ -131,7 +134,8 @@ function regimeCard(reg) {
   var benchTxt = reg.benchAbove == null ? T("ไม่มีข้อมูล ", "No data ") + esc(reg.benchT) :
     (reg.benchAbove ? '<span class="ok">✓ ' + esc(reg.benchT) + T(" เหนือ 200D", " above 200D") + "</span>" : '<span class="no">✕ ' + esc(reg.benchT) + T(" ใต้ 200D", " below 200D") + "</span>");
   return '<div class="regime ' + r.key + '"><div class="hd"><span class="emoji">' + emoji + '</span><span class="ttl">' + esc(pick(r)) + '</span>' +
-    '<span class="pct">' + T("อัตราส่วนสินทรัพย์เสี่ยง", "Risk-asset ratio") + '<b class="num">' + (reg.pct == null ? "–" : Math.round(reg.pct) + "%") + '</b></span></div>' +
+    '<span class="pct">' + T("อัตราส่วนสินทรัพย์เสี่ยง", "Risk-asset ratio") + '<b class="num">' + (reg.pct == null ? "–" : Math.round(reg.pct) + "%") + '</b></span>' +
+    '<button class="help sm" data-crit="regime" aria-label="' + T("อัตราส่วนสินทรัพย์เสี่ยงคืออะไร", "What is the risk-asset ratio?") + '">?</button></div>' +
     '<p class="desc">' + desc + '</p><div class="bench">' + benchTxt + '</div></div>';
 }
 function quoteLine(reg) {
@@ -291,7 +295,13 @@ function dailyHTML() {
   var rank = function (c) { return c.L && c.L.st ? {bad: 0, good: 1, warn: 2, note: 3}[c.L.st.key] : 9; };
   cards.sort(function (a, b) { return rank(a) - rank(b) || a.idx - b.idx; });
   var alerts = cards.filter(function (c) { return c.L && c.L.st; }).length;
-  var o = '<div class="chead"><h3>' + T("ตัวที่ติดตาม", "Watching") + '<span class="sub">' + cards.length + T(" ตัว", " assets") + (alerts ? T(" · เตือน ", " · alerts ") + alerts : "") + '</span></h3></div>';
+  var slBroken = cards.filter(function (c) { return c.L && c.L.st && c.L.st.key === "bad"; });
+  var o = "";
+  if (slBroken.length) {
+    var names = slBroken.map(function (c) { return c.it.s || c.it.t; }).join(", ");
+    o += '<div class="banner bad">⚠️ ' + T(names + " หลุดต่ำกว่า SL แล้ว — ควรทบทวนแผนใหม่", names + " broke below SL — review your plan") + '</div>';
+  }
+  o += '<div class="chead"><h3>' + T("ตัวที่ติดตาม", "Watching") + '<span class="sub">' + cards.length + T(" ตัว", " assets") + (alerts ? T(" · เตือน ", " · alerts ") + alerts : "") + '</span></h3></div>';
   cards.forEach(function (c) {
     var it = c.it, s = c.s, d = c.d, L = c.L;
     var rsi = s.rsi, rtag = rsi == null ? "" : rsi >= 70 ? '<span class="tag hot">RSI ' + rsi.toFixed(0) + T(' ร้อนแรง', ' hot') + '</span>' :
@@ -301,7 +311,7 @@ function dailyHTML() {
     var age = d && d.asof ? daysAgo(d.asof) : null;
     o += '<article class="dcard ' + (L && L.st ? L.st.key : "") + '"><div class="dtop"><div class="id"><b>' + esc(it.s || it.t) + '</b><span>' + esc(pick(it)) + (d && d.bias ? " · " + (d.bias === "short" ? "Short" : "Long") : "") + '</span></div>' +
       '<div class="pr"><b class="num">' + price(s.last) + '</b><span class="num ' + (s.chg >= 0 ? "up" : "down") + '">' + pct(s.chg, 2) + "</span></div></div>";
-    if (L && L.st) o += '<span class="alert ' + L.st.key + '">' + esc(pick(L.st)) + "</span>";
+    if (L && L.st) o += '<span class="alert ' + L.st.key + '">' + esc(pick(L.st)) + (L.st.key === "bad" ? " — " + T("ทบทวนแผนใหม่", "Review your plan") : "") + "</span>";
     if (L) {
       var tp2Stat = L.tp2 != null ? ' · ' + T("ห่าง TP2 ", "TP2 dist ") + '<b>' + L.dTP2.toFixed(1) + '%</b>' : "";
       var rr2Stat = L.rr2 != null ? " (1:" + L.rr2.toFixed(1) + T(" ที่ TP2)", " at TP2)") : "";
@@ -656,6 +666,17 @@ function explainSheet() {
     '<p>ปกติหมุนตามเข็มนาฬิกา: กำลังฟื้น → นำตลาด → เริ่มอ่อน → ตามหลัง · หางคือตำแหน่ง 5 สัปดาห์ล่าสุด (แตะจุดเพื่อดู)</p>' +
     '<p class="sub">คำนวณรายสัปดาห์ด้วย z-score ให้ผลใกล้เคียงแนวคิด Relative Rotation แต่ไม่ใช่สูตรต้นฉบับ (JdK) ใช้ดูโมเมนตัมสัมพัทธ์ ไม่ใช่สัญญาณซื้อขาย</p>');
 }
+function groupHelpSheet() {
+  openSheet('<h3>' + T("% ในภาพรวมรายกลุ่มคืออะไร", "What does the Group overview % mean?") + '</h3>' +
+    '<p>' + T('เป็นสัดส่วนของตัวในกลุ่มนั้น (เช่น กลุ่ม Sector มี 11 ตัว) ที่ราคาปัจจุบันยังอยู่ <b>เหนือเส้นค่าเฉลี่ย 200 วัน</b> — ใช้เป็นตัวชี้วัดแนวโน้มระยะยาวแบบกว้างๆ ของทั้งกลุ่ม ไม่ใช่การให้คะแนนคุณภาพหรือสัญญาณซื้อขาย',
+      'This is the share of items in that group (e.g. 11 sector ETFs) whose price is currently <b>above its 200-day moving average</b> — a broad long-term-trend gauge for the whole group, not a quality score or a trading signal.') + '</p>' +
+    '<ul class="qlist">' +
+    '<li><i style="background:var(--strong)"></i><span><b>' + T("แข็งแรง (≥60%)", "Strong (≥60%)") + '</b> — ' + T("ส่วนใหญ่ในกลุ่มยังอยู่เหนือ 200 วัน แนวโน้มระยะยาวเป็นบวกในภาพกว้าง", "most items in the group are above their 200-day line — broadly positive long-term trend") + '</span></li>' +
+    '<li><i style="background:var(--caution)"></i><span><b>' + T("กลางๆ (40–60%)", "Mixed (40–60%)") + '</b> — ' + T("สัญญาณผสม ยังไม่ชัดไปทางใดทางหนึ่ง", "mixed signals, no clear direction yet") + '</span></li>' +
+    '<li><i style="background:var(--weak)"></i><span><b>' + T("อ่อนแอ (≤40%)", "Weak (≤40%)") + '</b> — ' + T("ส่วนใหญ่ในกลุ่มหลุดต่ำกว่า 200 วัน แนวโน้มระยะยาวเป็นลบในภาพกว้าง", "most items in the group are below their 200-day line — broadly weak long-term trend") + '</span></li></ul>' +
+    '<p class="sub">' + T('เช่น "US Sectors 36% (สีแดง)" แปลว่ามีแค่ 4 จาก 11 sector ที่ยังอยู่เหนือ 200 วัน — ไม่ได้แปลว่าตัวใดตัวหนึ่งต้องขาย แค่บอกว่ากลุ่มนี้ในภาพรวมยังอ่อนกว่าค่าเฉลี่ยเมื่อเทียบกับกลุ่มอื่น แตะการ์ดกลุ่มเพื่อดูว่าตัวไหนแข็ง/อ่อนในแท็บ "รายการ"',
+      'For example "US Sectors 36% (red)" means only 4 of 11 sectors are still above their 200-day line — it does not mean any single sector must be sold, just that the group overall is weaker than others right now. Tap the group card to see which items are strong/weak in the "Watchlist" tab.') + '</p>');
+}
 function criteriaSheet(tab) {
   tab = tab || "status";
   var onPct = (S.wl.regime && S.wl.regime.riskOnPct) || 60, offPct = (S.wl.regime && S.wl.regime.riskOffPct) || 40;
@@ -699,7 +720,7 @@ function render() {
 }
 
 document.addEventListener("click", function (e) {
-  var t = e.target.closest("[data-tab],[data-group],[data-gview],[data-tmode],[data-period],[data-detp],[data-open],[data-t],[data-goto-group],[data-accum-glossary],#help,#critBtn,[data-crit],#closeSheet,#backBtn,#themeBtn,#fsBtn,#langBtn,#sheet");
+  var t = e.target.closest("[data-tab],[data-group],[data-gview],[data-tmode],[data-period],[data-detp],[data-open],[data-t],[data-goto-group],[data-accum-glossary],[data-group-help],#help,#critBtn,[data-crit],#closeSheet,#backBtn,#themeBtn,#fsBtn,#langBtn,#sheet");
   if (!t) return;
   if (t.id === "langBtn") { toggleLang(); return; }
   if (t.id === "fsBtn") { S.fs = (S.fs % 3) + 1; applyFs(); store.set("mb.fs", S.fs); return; }
@@ -709,6 +730,7 @@ document.addEventListener("click", function (e) {
   if (t.id === "help") { explainSheet(); return; }
   if (t.id === "critBtn") { criteriaSheet("status"); return; }
   if (t.dataset.crit) { criteriaSheet(t.dataset.crit); return; }
+  if (t.dataset.groupHelp) { groupHelpSheet(); return; }
   if (t.dataset.accumGlossary) { accumGlossarySheet(); return; }
   if (t.dataset.tab) { S.screen = t.dataset.tab; store.set("mb.screen", S.screen); render(); scrollTo(0, 0); return; }
   if (t.dataset.gotoGroup) { S.group = t.dataset.gotoGroup; S.screen = "list"; store.set("mb.screen", "list"); render(); scrollTo(0, 0); return; }

@@ -377,6 +377,21 @@
    "t": "^SETHD.BK",
    "th": "หุ้นปันผลสูงไทย (SETHD)",
    "en": "SET High Dividend 30"
+  },
+  {
+   "t": "WINC.L",
+   "th": "หุ้นโลก High Income (WINC)",
+   "en": "iShares World Equity High Income Active UCITS ETF"
+  },
+  {
+   "t": "JEPQ.L",
+   "th": "Nasdaq Equity Premium Income (JEPQ)",
+   "en": "JPM Nasdaq Equity Premium Income Active UCITS ETF"
+  },
+  {
+   "t": "CAIE",
+   "th": "Autocallable Income ETF (CAIE)",
+   "en": "Calamos Autocallable Income ETF"
   }
  ]
 }

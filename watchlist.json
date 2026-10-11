@@ -279,6 +279,13 @@
      "th": "ดัชนีดอลลาร์",
      "en": "US Dollar Index",
      "cat": "dxy"
+    },
+    {
+     "t": "THB=X",
+     "s": "USDTHB",
+     "th": "ค่าเงินบาท (USD/THB)",
+     "en": "Thai Baht (USD/THB)",
+     "cat": "fx"
     }
    ]
   }

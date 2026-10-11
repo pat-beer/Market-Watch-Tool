@@ -10,7 +10,7 @@ var Q = {
 };
 var VIEW = {overweight: {th: "เพิ่ม", en: "Add", ic: "▲", cl: "up"}, neutral: {th: "ถือ", en: "Hold", ic: "●", cl: ""}, underweight: {th: "ลด", en: "Reduce", ic: "▼", cl: "down"}};
 var GROUP_ICON = {sector: "🏭", country: "🌍", asset: "◆"};
-var CAT_TH = {equity: "หุ้น/ETF", commodity: "สินค้าโภคภัณฑ์", bond: "ตราสารหนี้", crypto: "คริปโต", dxy: "ดัชนีดอลลาร์"};
+var CAT_TH = {equity: "หุ้น/ETF", commodity: "สินค้าโภคภัณฑ์", bond: "ตราสารหนี้", crypto: "คริปโต", dxy: "ดัชนีดอลลาร์", fx: "ค่าเงิน"};
 
 var S = {
   screen: "overview", from: "overview",

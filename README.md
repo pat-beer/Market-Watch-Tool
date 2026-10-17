@@ -19,10 +19,13 @@ PWA มือถือ 4 แท็บ: **ภาพรวม** (Risk-On/Off + ส
 | `watchlist.json` | พี่แก้เอง | กลุ่ม (ภาคส่วน/ประเทศ/สินทรัพย์) + หมวด (`cat`) สำหรับคำนวณ Risk-On + ตัวรายวัน + เกณฑ์ Risk-On/Off (`regime`) |
 | `data/prices.json` | GitHub Actions | ราคา, ผลตอบแทน (1W–1Y, YTD), RSI, **ADX**, MA, ATR, ตำแหน่ง RRG |
 | `data/series.json` | GitHub Actions | ราคาปิด + MA50/MA200 ย้อนหลัง ~300 วัน สำหรับกราฟหน้า Detail |
+| `data/silver_thb_history.json` | GitHub Actions | ราคาแท่งเงิน 1 กก. "ขายออก" ไม่รวม VAT จาก [Bowins](https://bowinsgroup.com/th/silver-price) สะสมทุกรอบ (ร้านไม่มี API/ราคาย้อนหลัง) — key `SILVER_THB_KG` |
 | `data/analysis.json` | Claude (desktop) | มุมมองรายสัปดาห์, SL/TP รายตัว, **ความเห็น Elliott Wave** |
 | `rules.js` | ไฟล์เดียวที่กำหนด "สถานะ" | กฎแดง/เทา/เขียว/เหลือง + Risk-On/Off — ดูเกณฑ์เต็มในแอป (ปุ่ม `?` หน้าภาพรวม) |
 
-Actions แตะเฉพาะ `prices.json`/`series.json` จึงไม่ทับงานวิเคราะห์ของ Claude
+Actions แตะเฉพาะ `prices.json`/`series.json`/`silver_thb_history.json` จึงไม่ทับงานวิเคราะห์ของ Claude
+
+**แท่งเงิน (`SILVER_THB_KG`)** ไม่ใช่ yfinance ticker — SL/TP ระยะยาวคำนวณด้วย `python scripts/update_prices.py --silver-analysis` (เขียนเฉพาะ `daily.SILVER_THB_KG` ใน analysis.json) สลับโหมดเอง: weekly bars < 12 ใช้ risk ชั่วคราว 6% ของราคา, ครบ 12 แล้วใช้ 1.5×ATR12 รายสัปดาห์ · ถ้าหน้าเว็บร้านเปลี่ยนจนอ่านราคาไม่ได้ สคริปต์จะไม่บันทึกราคา และแอปขึ้นแบนเนอร์ "ดึงราคาไม่ได้: SILVER_THB_KG"
 
 ## รูปแบบ `data/analysis.json`
 ```json
@@ -57,6 +60,7 @@ Actions แตะเฉพาะ `prices.json`/`series.json` จึงไม่�
 วิเคราะห์ภาพรวมรายสัปดาห์ (sector rotation, ประเทศ, ทอง/เงิน/ทองแดง), ระดับ SL/TP ของตัวใน "daily",
 และถ้าต้องการ ให้นับ Elliott Wave ของตัวหลัก (ระบุจุด pivot วันที่+ราคา, คลื่นปัจจุบัน, ทางเลือก, จุดเปลี่ยนสำคัญ)
 แล้วเขียนทับ data/analysis.json ตามรูปแบบใน README ห้ามแก้ไฟล์อื่น ห้ามใส่ข้อมูลลูกค้า เขียนเป็นภาษาไทยสั้นๆ
+(SILVER_THB_KG ไม่ต้องคำนวณเอง — รัน python scripts/update_prices.py --silver-analysis หลังเขียนไฟล์)
 เสร็จแล้ว git add data/analysis.json && git commit -m "analysis" && git push
 ```
 
@@ -81,7 +85,8 @@ Trend (`getTrendStatus`) กับ Action (`getAccumulationAction`) เป็น
 ## ทดสอบก่อน deploy
 ```
 python scripts/update_prices.py --demo   # สร้างข้อมูลตัวอย่าง (prices/series/analysis)
-node scripts/test-rules.mjs              # เทสต์กฎสถานะ/Risk-On/SL-TP (27 เคส)
+node scripts/test-rules.mjs              # เทสต์กฎสถานะ/Risk-On/SL-TP
+python scripts/test_silver.py            # เทสต์ parser ราคาแท่งเงิน + การสลับโหมด SL/TP
 python -m http.server 8000               # แล้วเปิด http://localhost:8000
 ```
 

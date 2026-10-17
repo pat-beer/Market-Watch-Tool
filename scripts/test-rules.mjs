@@ -93,6 +93,30 @@ eq(lv4.rr, 3, "R:R หลักคำนวณจาก tp1");
 eq(lv4.rr2, 6, "R:R2 คำนวณจาก tp2 = (160-100)/(100-90) = 6");
 eq(Math.round(lv4.dTP2 * 10) / 10, 60, "ห่าง TP2 คำนวณถูก");
 
+// ---- SILVER_THB_KG (key พิเศษ ไม่ใช่ yfinance: ราคาหลักหมื่นบาท ไม่มี RSI/ADX/MA) ----
+// provisional: entry 63000, risk 6% = 3780 -> sl 59220, tp1 68670, tp2 74340
+const lvAg = Rules.levels({bias: "long", entry: 63000, sl: 59220, tp1: 68670, tp2: 74340}, 63000);
+eq(lvAg.rr, 1.5, "แท่งเงิน: R:R TP1 = 1:1.5");
+eq(lvAg.rr2, 3, "แท่งเงิน: R:R TP2 = 1:3");
+eq(Math.round(lvAg.dSL * 10) / 10, 6, "แท่งเงิน: ห่าง SL = 6% (provisional)");
+eq(Rules.levels({bias: "long", entry: 63000, sl: 59220, tp1: 68670, tp2: 74340}, 59000).st.key, "bad", "แท่งเงิน: ราคาต่ำกว่า SL -> ทะลุ SL");
+eq(Rules.statusOf({last: 63000, chg: null, atr: null, spark: [63000]}).key, "unknown", "record ที่ไม่มี RSI/ADX/MA -> unknown ไม่ error");
+
+// ทุก key ใน analysis.daily ต้องมีใน watchlist.daily (รวม key พิเศษอย่าง SILVER_THB_KG)
+{
+  const fs = require("fs");
+  const wlFile = JSON.parse(fs.readFileSync(new URL("../watchlist.json", import.meta.url), "utf8"));
+  const an = JSON.parse(fs.readFileSync(new URL("../data/analysis.json", import.meta.url), "utf8"));
+  const dailyKeys = new Set(wlFile.daily.map((i) => i.t));
+  Object.keys(an.daily || {}).forEach((t) => eq(dailyKeys.has(t), true, `analysis.daily.${t} มีใน watchlist.daily`));
+  const ag = (an.daily || {}).SILVER_THB_KG;
+  if (ag) {
+    const risk = ag.entry - ag.sl;
+    eq(Math.round((ag.tp1 - ag.entry) / risk * 100) / 100, 1.5, "analysis แท่งเงิน: tp1 = entry + 1.5×risk");
+    eq(Math.round((ag.tp2 - ag.entry) / risk * 100) / 100, 3, "analysis แท่งเงิน: tp2 = entry + 3×risk");
+  }
+}
+
 // ---- getTrendStatus (แท็บสะสม: MA200=regime, MA50=เทรนด์ระยะกลาง — ไม่ใช้ MA100) ----
 eq(Rules.getTrendStatus({vs200: 5, vs50: 2}).key, "green", "เหนือ 200D และ 50D -> green");
 eq(Rules.getTrendStatus({vs200: 5, vs50: -1}).key, "yellow", "เหนือ 200D แต่ใต้ 50D -> yellow (ไม่ใช่ red เต็มๆ)");

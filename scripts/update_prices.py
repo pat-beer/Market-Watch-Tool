@@ -12,6 +12,7 @@
 import argparse
 import datetime as dt
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -24,9 +25,19 @@ PRICES_OUT = ROOT / "data" / "prices.json"
 SERIES_OUT = ROOT / "data" / "series.json"
 ANALYSIS_OUT = ROOT / "data" / "analysis.json"
 
+SILVER_HISTORY = ROOT / "data" / "silver_thb_history.json"
+
 MAX_FAIL_RATIO = 0.4          # ถ้าดึงพลาดเกินนี้ จะไม่เขียนทับไฟล์เดิม
 SPARK_DAYS = 30
 SERIES_DAYS = 300             # จำนวนวันทำการล่าสุดที่เก็บลง series.json (ราคา + MA)
+
+# ---------- แท่งเงิน 1 กก. (Bowins) — ไม่ใช่ yfinance ticker ----------
+SILVER_KEY = "SILVER_THB_KG"
+SILVER_URL = "https://bowinsgroup.com/th/silver-price"
+SILVER_MIN_WEEKS = 12         # weekly bars ขั้นต่ำก่อนเลิกใช้ % ชั่วคราว แล้วเปลี่ยนเป็น ATR12 รายสัปดาห์
+SILVER_ATR_N = 12
+SILVER_PROVISIONAL_RISK = 0.06  # risk ชั่วคราว = 6% ของราคาล่าสุด (ความผันผวนเงิน + premium ร้านค้าปลีก)
+SPECIAL_KEYS = {SILVER_KEY}   # key ที่ไม่ส่งให้ yfinance
 
 
 # ---------- helpers ----------
@@ -44,7 +55,7 @@ def collect_tickers(wl):
         tickers.update(i["t"] for i in g["items"])
     tickers.update(i["t"] for i in wl.get("daily", []))
     tickers.update(i["t"] for i in wl.get("accumulate", []))
-    return sorted(tickers)
+    return sorted(tickers - SPECIAL_KEYS)
 
 
 def rsi_wilder(close, n=14):
@@ -226,6 +237,137 @@ def fetch_demo(tickers, seed=7):
     return frames
 
 
+# ---------- แท่งเงิน 1 กก. (Bowins Silver, บาท) ----------
+# Bowins ไม่มี API/ราคาย้อนหลังให้ จึงเก็บราคาเองทุกรอบที่ workflow รัน (data/silver_thb_history.json)
+# แล้วค่อยๆ สะสมเป็น time series — ใช้ราคา "ขายออก" ไม่รวม VAT (ราคาที่ลูกค้าซื้อจากร้าน)
+def parse_bowins(html):
+    """ดึง {created, sell, buy} จาก initialPrice ที่ฝังในหน้า แล้วเทียบกับตารางที่แสดงจริง
+    โครงสร้างเปลี่ยน/ตัวเลขไม่ตรงกัน -> ValueError (ห้ามเดาราคา)"""
+    m = re.search(r'\\?"initialPrice\\?"\s*:\s*(\{[^{}]*\})', html)
+    if not m:
+        raise ValueError("ไม่พบ initialPrice ในหน้า — โครงสร้าง HTML อาจเปลี่ยน")
+    p = json.loads(m.group(1).replace('\\"', '"'))
+    try:
+        sell, buy = float(p["sell"]), float(p["buy"])
+        created = dt.datetime.strptime(p["created"], "%Y-%m-%d %H:%M:%S")
+    except (KeyError, TypeError, ValueError) as e:
+        raise ValueError(f"initialPrice ไม่มีฟิลด์ที่ต้องการ: {e}") from e
+    if not (5_000 < sell < 1_000_000 and 0 < buy <= sell):
+        raise ValueError(f"ราคาผิดปกติ sell={sell} buy={buy}")
+    # ยืนยันกับตารางที่ลูกค้าเห็น: แถวแรกหลังหัวตาราง "ขายออก (SELL)" = รับซื้อ, ขายออก, ราคารวม VAT 7%
+    i = html.find("(SELL)")
+    if i < 0:
+        raise ValueError("ไม่พบหัวตาราง ขายออก (SELL) — โครงสร้าง HTML อาจเปลี่ยน")
+    text = re.sub(r"<[^>]+>", " ", html[i:i + 8000])
+    nums = [float(x.replace(",", "")) for x in re.findall(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?", text)[:3]]
+    if len(nums) < 3 or nums[0] != buy or nums[1] != sell or abs(nums[2] - sell * 1.07) > 0.01:
+        raise ValueError(f"ตารางที่แสดง {nums} ไม่ตรงกับ initialPrice sell={sell} buy={buy}")
+    return {"t": created.strftime("%Y-%m-%dT%H:%M:%S+07:00"), "sell": rnd(sell), "buy": rnd(buy)}
+
+
+def fetch_silver():
+    import urllib.request
+
+    req = urllib.request.Request(SILVER_URL, headers={"User-Agent": "Mozilla/5.0 (market-watch price-bot)"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return parse_bowins(r.read().decode("utf-8", errors="replace"))
+
+
+def load_silver_history():
+    if SILVER_HISTORY.exists():
+        return json.loads(SILVER_HISTORY.read_text(encoding="utf-8"))
+    return {"key": SILVER_KEY, "source": SILVER_URL, "unit": "THB/kg ขายออก ไม่รวม VAT", "points": []}
+
+
+def append_silver_point(hist, pt):
+    """เพิ่มจุดใหม่ถ้าเวลาประกาศของร้าน (t) ยังไม่เคยบันทึก — คืน True ถ้ามีการเพิ่ม"""
+    if any(p["t"] == pt["t"] for p in hist["points"]):
+        return False
+    hist["points"].append(pt)
+    hist["points"].sort(key=lambda p: p["t"])
+    return True
+
+
+def silver_weekly_bars(points):
+    """รีแซมเปิลเป็นแท่งรายสัปดาห์ (W-FRI): High/Low = สูง/ต่ำสุดที่บันทึกได้ในสัปดาห์, Close = จุดสุดท้าย"""
+    if not points:
+        return pd.DataFrame(columns=["High", "Low", "Close"])
+    s = pd.Series([p["sell"] for p in points], index=pd.to_datetime([p["t"][:19] for p in points]))
+    w = s.resample("W-FRI").agg(["max", "min", "last"]).dropna()
+    return w.rename(columns={"max": "High", "min": "Low", "last": "Close"})
+
+
+def silver_levels(points):
+    """SL/TP ระยะยาวของแท่งเงิน — สลับโหมดเองตามจำนวนข้อมูล:
+    weekly bars < 12 -> provisional (risk = 6% ของราคา) · ครบแล้ว -> risk = 1.5×ATR12 รายสัปดาห์
+    sl = entry − risk, tp1 = entry + 1.5×risk, tp2 = entry + 3×risk"""
+    if not points:
+        return None
+    last = points[-1]
+    entry = last["sell"]
+    weeks = silver_weekly_bars(points)
+    atr = None
+    if len(weeks) >= SILVER_MIN_WEEKS:
+        atr = float(atr_wilder(weeks, SILVER_ATR_N).iloc[-1])
+        mode, risk = "atr", 1.5 * atr
+    else:
+        mode, risk = "provisional", SILVER_PROVISIONAL_RISK * entry
+    return {
+        "mode": mode, "weeks": len(weeks), "entry": rnd(entry), "risk": rnd(risk), "atr": rnd(atr),
+        "sl": rnd(entry - risk), "tp1": rnd(entry + 1.5 * risk), "tp2": rnd(entry + 3 * risk), "t": last["t"],
+    }
+
+
+def silver_analysis_entry(lv, asof):
+    when = lv["t"][:16].replace("T", " ")
+    head = f"ถือสะสมระยะยาว — entry = ราคาขายออกล่าสุด ไม่รวม VAT ({lv['entry']:,.0f} บาท, ณ {when})"
+    if lv["mode"] == "atr":
+        body = f"SL = entry − 1.5×ATR12 รายสัปดาห์ (~{lv['atr']:,.2f}) TP1/TP2 ตามอัตราส่วน R:R 1:1.5 และ 1:3 (ข้อมูล {lv['weeks']} สัปดาห์)"
+    else:
+        body = (f"risk = 6% ของราคา (~{lv['risk']:,.2f}) TP1/TP2 ตามอัตราส่วน R:R 1:1.5 และ 1:3 · "
+                f"SL/TP เป็นค่าประมาณชั่วคราว รอสะสมข้อมูลราคาให้ครบ ~12 สัปดาห์ก่อนเปลี่ยนไปใช้ ATR จริง (ตอนนี้มี {lv['weeks']} สัปดาห์)")
+    return {"bias": "long", "entry": lv["entry"], "sl": lv["sl"], "tp1": lv["tp1"], "tp2": lv["tp2"],
+            "note": f"{head} {body}", "asof": asof}
+
+
+def silver_symbol(points):
+    """record ใน prices.json จาก history (ไม่มี RSI/ADX/MA เพราะไม่มีแท่งราคารายวันแบบ OHLC)"""
+    if not points:
+        return None
+    sells = [p["sell"] for p in points]
+    lv = silver_levels(points)
+    return {
+        "last": sells[-1],
+        "chg": rnd((sells[-1] / sells[-2] - 1) * 100) if len(sells) > 1 else None,
+        "asof": points[-1]["t"][:10],
+        "updatedAt": points[-1]["t"],
+        "spark": sells[-SPARK_DAYS:],
+        "atr": None,
+        "unit": "THB",
+        "weeks": lv["weeks"],
+        "levelMode": lv["mode"],
+    }
+
+
+def write_analysis(a):
+    out = json.dumps(a, ensure_ascii=False, indent=2)
+    # คงรูปแบบ pivot บรรทัดเดียวแบบที่ไฟล์ใช้อยู่
+    out = re.sub(r'\{\n\s+"n": (\d+),\n\s+"date": ("[^"]+"),\n\s+"price": ([\d.]+)\n\s+\}', r'{ "n": \1, "date": \2, "price": \3 }', out)
+    ANALYSIS_OUT.write_text(out, encoding="utf-8")
+
+
+def update_silver_analysis():
+    """เขียน daily.SILVER_THB_KG ใน analysis.json จาก history (รันตอนทบทวนรายสัปดาห์ — โหมดสลับเอง)"""
+    lv = silver_levels(load_silver_history()["points"])
+    if not lv:
+        print(f"ยังไม่มีข้อมูลใน {SILVER_HISTORY.name} — ไม่แก้ analysis.json", file=sys.stderr)
+        sys.exit(1)
+    a = json.loads(ANALYSIS_OUT.read_text(encoding="utf-8"))
+    a.setdefault("daily", {})[SILVER_KEY] = silver_analysis_entry(lv, dt.date.today().isoformat())
+    write_analysis(a)
+    print(f"{SILVER_KEY}: โหมด {lv['mode']} ({lv['weeks']} สัปดาห์) entry {lv['entry']} sl {lv['sl']} tp1 {lv['tp1']} tp2 {lv['tp2']}")
+
+
 # ---------- main ----------
 def demo_analysis(wl, symbols):
     daily = {}
@@ -278,7 +420,12 @@ def demo_analysis(wl, symbols):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true", help="สร้างข้อมูลสุ่มไว้ดู UI (ทับ prices.json, series.json และ analysis.json)")
+    ap.add_argument("--silver-analysis", action="store_true",
+                    help=f"เขียน daily.{SILVER_KEY} ใน analysis.json จาก history (ไม่ดึงราคา) — ใช้ตอนทบทวนรายสัปดาห์")
     args = ap.parse_args()
+    if args.silver_analysis:
+        update_silver_analysis()
+        return
 
     wl = json.loads(WATCHLIST.read_text(encoding="utf-8"))
     tickers = collect_tickers(wl)
@@ -312,6 +459,22 @@ def main():
         s = build_series(df)
         if s:
             series[t] = s
+
+    # แท่งเงิน: scrape ไม่ได้ -> เก็บ history เดิมไว้, แสดงราคาล่าสุดที่มี และขึ้นแบนเนอร์ "ดึงราคาไม่ได้"
+    if not args.demo and SILVER_KEY in {i["t"] for i in wl.get("daily", []) + wl.get("accumulate", [])}:
+        hist = load_silver_history()
+        try:
+            pt = fetch_silver()
+            pt["fetched"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            if append_silver_point(hist, pt):
+                SILVER_HISTORY.write_text(json.dumps(hist, ensure_ascii=False, indent=1), encoding="utf-8")
+            print(f"{SILVER_KEY}: ขายออก {pt['sell']} (ประกาศ {pt['t']}), history {len(hist['points'])} จุด")
+        except Exception as e:  # noqa: BLE001 — เว็บร้านล่ม/เปลี่ยนหน้า ต้องไม่ทำให้ราคาตัวอื่นไม่อัปเดต
+            print(f"{SILVER_KEY}: ดึงราคาไม่ได้ — {e}", file=sys.stderr)
+            failed.append(SILVER_KEY)
+        rec = silver_symbol(hist["points"])
+        if rec:
+            symbols[SILVER_KEY] = rec
 
     now = dt.datetime.now(dt.timezone.utc)
     ict = now + dt.timedelta(hours=7)

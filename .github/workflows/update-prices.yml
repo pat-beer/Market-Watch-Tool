@@ -25,11 +25,12 @@ jobs:
           cache-dependency-path: scripts/requirements.txt
       - run: pip install -r scripts/requirements.txt
       - run: python scripts/update_prices.py
-      - name: Commit prices + series only (ไม่แตะ data/analysis.json)
+      - name: Commit prices + series + silver history only (ไม่แตะ data/analysis.json)
         run: |
           git config user.name "price-bot"
           git config user.email "price-bot@users.noreply.github.com"
           git add data/prices.json data/series.json
+          if [ -f data/silver_thb_history.json ]; then git add data/silver_thb_history.json; fi
           if ! git diff --staged --quiet; then
             git commit -m "prices $(date -u +'%Y-%m-%d %H:%M')Z"
             git pull --rebase

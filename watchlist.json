@@ -352,6 +352,12 @@
    "th": "หุ้นกลุ่มดิจิทัล/คริปโต",
    "en": "Digital Transformation ETF",
    "cat": "equity"
+  },
+  {
+   "t": "SILVER_THB_KG",
+   "th": "แท่งเงิน 1 กก. (ขายออก)",
+   "en": "Silver Bar 1kg (THB, ask price)",
+   "cat": "commodity"
   }
  ],
  "regime": {

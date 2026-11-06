@@ -14,6 +14,7 @@ import datetime as dt
 import json
 import re
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -214,6 +215,24 @@ def fetch_real(tickers):
             f = raw[t].dropna(how="all")
             if len(f):
                 frames[t] = f
+    # Yahoo มักพลาดแบบสุ่มทีละตัว (เช่น ARKF/QQQM/GC=F) — ลองดึงซ้ำเฉพาะตัวที่ขาด ก่อนขึ้นแบนเนอร์ "ดึงราคาไม่ได้"
+    for attempt in range(2):
+        missing = [t for t in tickers if t not in frames]
+        if not missing:
+            break
+        time.sleep(3 * (attempt + 1))
+        try:
+            r = yf.download(missing, period="4y", interval="1d", auto_adjust=True,
+                            group_by="ticker", progress=False, threads=False)
+        except Exception as e:  # noqa: BLE001
+            print(f"retry {attempt + 1} พลาด: {e}", file=sys.stderr)
+            continue
+        top_r = set(r.columns.get_level_values(0)) if isinstance(r.columns, pd.MultiIndex) else set()
+        for t in missing:
+            if t in top_r:
+                f = r[t].dropna(how="all")
+                if len(f):
+                    frames[t] = f
     return frames
 
 

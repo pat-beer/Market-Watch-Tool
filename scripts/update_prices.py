@@ -233,6 +233,23 @@ def fetch_real(tickers):
                 f = r[t].dropna(how="all")
                 if len(f):
                     frames[t] = f
+    # ด่านสุดท้าย: ดึงทีละตัวด้วย Ticker.history() — คนละ code path กับ download()
+    # ซึ่งมักรอดตอน batch download พลาดซ้ำกับตัวเดิม (เช่น CL=F)
+    for t in [t for t in tickers if t not in frames]:
+        time.sleep(2)
+        try:
+            f = yf.Ticker(t).history(period="4y", interval="1d", auto_adjust=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"history {t} พลาด: {e}", file=sys.stderr)
+            continue
+        if f is not None and len(f):
+            f = f.dropna(how="all")
+            if f.index.tz is not None:
+                f.index = f.index.tz_localize(None)
+            f.index = f.index.normalize()
+            frames[t] = f[[c for c in ("Open", "High", "Low", "Close", "Volume") if c in f.columns]]
+        else:
+            print(f"history {t}: ไม่มีข้อมูล", file=sys.stderr)
     return frames
 
 

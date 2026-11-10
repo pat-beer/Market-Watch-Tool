@@ -290,6 +290,9 @@ svg.chart{width:100%;height:auto;display:block}
 .gauge .zones{position:absolute;inset:0;display:flex;border-radius:99px;overflow:hidden}
 .gauge .rng{display:flex;justify-content:space-between;font-size:.66rem;color:var(--faint);margin-top:.3rem}
 
+/* ปุ่ม ⓘ: พื้นที่กด 44px แต่ margin ติดลบไม่ให้หัวข้อสูงขึ้น */
+.infobtn{width:44px;height:44px;margin:-.7rem -.6rem -.7rem 0;display:flex;align-items:center;justify-content:center;flex:none;font-size:1.25rem;line-height:1;color:var(--muted);border-radius:50%}
+.infobtn:active{background:var(--wash)}
 .wavewrap{border:1px solid var(--line);border-radius:14px;padding:.85rem .9rem;margin-top:.3rem}
 .wavechain{display:flex;align-items:center;gap:.3rem;margin:.5rem 0}
 .wavechain .nd{width:1.9rem;height:1.9rem;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;color:var(--muted);flex:none}
@@ -319,6 +322,11 @@ svg.chart{width:100%;height:auto;display:block}
 .grid3 small{display:block;font-size:.66rem;color:var(--muted)}
 .grid3 b{font-size:.95rem;font-weight:700}
 .sheet p{font-size:.88rem;margin:.5rem 0}
+.sheethd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:-.45rem -.55rem .2rem 0}
+.sheetx{width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex:none;font-size:1rem;line-height:1;color:var(--muted);border-radius:50%}
+.sheetx:active{background:var(--wash)}
+.sheet p.wavepart{margin:.7rem 0;line-height:1.55}
+.wavepart b{display:block;font-weight:700}
 .sheet .close{margin-top:.6rem;width:100%;border:1px solid var(--line);border-radius:10px;padding:.6rem;font-weight:700}
 .qlist{font-size:.86rem;padding-left:0;list-style:none;margin:.5rem 0}
 .qlist li{display:flex;gap:.5rem;margin:.4rem 0}

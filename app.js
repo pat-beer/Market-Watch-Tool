@@ -573,7 +573,7 @@ function detailHTML(t) {
 
   var wv = S.an && S.an.waves ? S.an.waves[t] : null;
   if (wv) extraLabels.push("Elliott Wave");
-  extraHtml += waveBox(wv);
+  extraHtml += waveBox(wv, t);
 
   var view = S.an && S.an.weekly && S.an.weekly.views ? S.an.weekly.views[t] : null;
   if (view) {
@@ -613,21 +613,29 @@ function gauge(label, val, lo, hi, zones, sub) {
     '<div class="track"><span class="zones">' + zonesHtml + '</span>' + (pos == null ? "" : '<i style="left:' + pos + '%"></i>') + '</div>' +
     '<div class="rng"><span>' + lo + '</span><span>' + hi + '</span></div>' + (sub ? '<div class="rng" style="margin-top:.3rem;color:var(--muted)">' + sub + '</div>' : "") + '</div>';
 }
-function waveBox(wv) {
+function waveBox(wv, t) {
   if (!wv) return "";
   var age = wv.asof ? daysAgo(wv.asof) : null;
   var chain = [1, 2, 3, 4, 5].map(function (n) {
     return '<span class="nd' + (n === wv.current ? " now" : "") + '">' + n + "</span>" + (n < 5 ? '<span class="ln"></span>' : "");
   }).join("");
-  var o = '<div class="sectionhd"><h2>' + T("Elliott Wave (ความเห็น)", "Elliott Wave (opinion)") + '</h2></div><div class="wavewrap">' +
+  var o = '<div class="sectionhd"><h2>' + T("Elliott Wave (ความเห็น)", "Elliott Wave (opinion)") + '</h2>' +
+    (wv.note ? '<button class="infobtn" data-wave-info="' + esc(t) + '" aria-label="' + T("อ่านการนับคลื่นฉบับเต็ม", "Read the full wave count") + '">ⓘ</button>' : "") + '</div><div class="wavewrap">' +
     '<div class="wavemeta">' + T("คลื่นปัจจุบัน: ", "Current wave: ") + '<b>Wave ' + wv.current + '</b>' + (wv.alt ? T(" · ทางเลือก: Wave ", " · alt: Wave ") + wv.alt + " (alt)" : "") + '</div>' +
     '<div class="wavechain">' + chain + "</div>";
   if (wv.keyLevel) o += '<div class="wavemeta">' + T("จุดเปลี่ยนสำคัญ: ", "Key level: ") + '<b class="num">' + price(wv.keyLevel.price) + "</b>" + (wv.keyLevel.note ? " — " + esc(wv.keyLevel.note) : "") + "</div>";
-  if (wv.note) o += '<div class="wavemeta">' + esc(wv.note) + "</div>";
+  if (wv.note) o += '<div class="wavemeta">' + esc(noteParts(wv.note)[0]) + "</div>";
   o += '<div class="wavemeta' + (age > 10 ? " old" : "") + '">' + T("ความเห็น ณ วันที่ ", "Opinion as of ") + fmtDate(wv.asof) + (age > 10 ? daysAgoTxt(age) : "") + '</div>' +
     '<div class="disclaim"><span class="ic">⚠️</span><span>' + T("นี่เป็นมุมมองเชิงวิจารณญาณ ไม่ใช่สัญญาณซื้อขาย โปรดใช้ดุลยพินิจและบริหารความเสี่ยงเสมอ",
       "This is a discretionary opinion, not a trading signal. Always use judgment and manage risk.") + '</span></div></div>';
   return o;
+}
+/** note ใน analysis.json เป็นข้อความเดียว คั่นแต่ละส่วนด้วย " | " */
+function noteParts(note) { return String(note).split(" | ").map(function (s) { return s.trim(); }).filter(Boolean); }
+function notePartHTML(part) {
+  // "หัวข้อ: เนื้อหา" → หัวข้อตัวหนา (ต้องสั้นและมีวรรคหลัง : จะได้ไม่จับเวลา/อัตราส่วนในเนื้อหา)
+  var m = /^([^:]{1,24}):\s+([\s\S]*)$/.exec(part);
+  return '<p class="wavepart">' + (m ? "<b>" + esc(m[1]) + "</b>" + esc(m[2]) : esc(part)) + "</p>";
 }
 function lineChart(ser, n) {
   var d = ser.d.slice(-n), c = ser.c.slice(-n), m50 = ser.m50.slice(-n), m200 = ser.m200.slice(-n);
@@ -653,8 +661,27 @@ function lineChart(ser, n) {
 }
 
 /* ---------- sheets: RRG help + เกณฑ์การประเมิน ---------- */
-function openSheet(html) { $("#pane").innerHTML = html + '<button class="close" id="closeSheet">' + T("ปิด", "Close") + '</button>'; $("#sheet").hidden = false; }
-function closeSheet() { $("#sheet").hidden = true; }
+var waveBtn = null; // ปุ่ม ⓘ ของแผง Elliott ที่เปิดอยู่ — มีค่าแปลว่ามี history entry ค้างอยู่หนึ่งอัน (ให้ปุ่ม Back ของเครื่องปิดแผงได้)
+function openSheet(html, noFoot) { $("#pane").innerHTML = html + (noFoot ? "" : '<button class="close" id="closeSheet">' + T("ปิด", "Close") + '</button>'); $("#sheet").hidden = false; }
+function closeSheet(fromBack) {
+  $("#sheet").hidden = true;
+  if (!waveBtn) return;
+  var b = waveBtn; waveBtn = null;
+  $("#pane").removeAttribute("aria-label");
+  b.focus({preventScroll: true});
+  if (!fromBack) history.back();
+}
+function waveSheet(t, btn) {
+  var wv = S.an && S.an.waves ? S.an.waves[t] : null;
+  if (!wv || !wv.note) return;
+  var title = T("Elliott Wave (ความเห็น)", "Elliott Wave (opinion)") + " · " + t;
+  openSheet('<div class="sheethd"><h3>' + esc(title) + '</h3><button class="sheetx" id="closeSheet" aria-label="' + T("ปิด", "Close") + '">✕</button></div>' +
+    noteParts(wv.note).map(notePartHTML).join(""), true);
+  $("#pane").setAttribute("aria-label", title);
+  history.pushState(null, "");
+  waveBtn = btn;
+  $("#closeSheet").focus({preventScroll: true});
+}
 function explainSheet() {
   openSheet('<h3>อ่านกราฟนี้อย่างไร</h3>' +
     '<p>แต่ละจุดคือสินทรัพย์เทียบกับตัวเปรียบเทียบ (US = SPY, ประเทศ = ACWI) · <b>แนวนอน</b> = แรงเทียบตลาด ขวาคือดีกว่าตลาด · <b>แนวตั้ง</b> = โมเมนตัม บนคือกำลังเร่งขึ้น</p>' +
@@ -720,7 +747,7 @@ function render() {
 }
 
 document.addEventListener("click", function (e) {
-  var t = e.target.closest("[data-tab],[data-group],[data-gview],[data-tmode],[data-period],[data-detp],[data-open],[data-t],[data-goto-group],[data-accum-glossary],[data-group-help],#help,#critBtn,[data-crit],#closeSheet,#backBtn,#themeBtn,#fsBtn,#langBtn,#sheet");
+  var t = e.target.closest("[data-tab],[data-group],[data-gview],[data-tmode],[data-period],[data-detp],[data-open],[data-t],[data-goto-group],[data-accum-glossary],[data-group-help],[data-wave-info],#help,#critBtn,[data-crit],#closeSheet,#backBtn,#themeBtn,#fsBtn,#langBtn,#sheet");
   if (!t) return;
   if (t.id === "langBtn") { toggleLang(); return; }
   if (t.id === "fsBtn") { S.fs = (S.fs % 3) + 1; applyFs(); store.set("mb.fs", S.fs); return; }
@@ -731,6 +758,7 @@ document.addEventListener("click", function (e) {
   if (t.id === "critBtn") { criteriaSheet("status"); return; }
   if (t.dataset.crit) { criteriaSheet(t.dataset.crit); return; }
   if (t.dataset.groupHelp) { groupHelpSheet(); return; }
+  if (t.dataset.waveInfo) { waveSheet(t.dataset.waveInfo, t); return; }
   if (t.dataset.accumGlossary) { accumGlossarySheet(); return; }
   if (t.dataset.tab) { S.screen = t.dataset.tab; store.set("mb.screen", S.screen); render(); scrollTo(0, 0); return; }
   if (t.dataset.gotoGroup) { S.group = t.dataset.gotoGroup; S.screen = "list"; store.set("mb.screen", "list"); render(); scrollTo(0, 0); return; }
@@ -743,6 +771,7 @@ document.addEventListener("click", function (e) {
   if (t.dataset.t) { S.sel = t.dataset.t; render(); return; }
 });
 document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet(); });
+window.addEventListener("popstate", function () { if (waveBtn) closeSheet(true); });
 
 /* ---------- theme + font size ---------- */
 function applyTheme() {

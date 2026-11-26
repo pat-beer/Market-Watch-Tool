@@ -8,7 +8,7 @@ description: ทบทวนรายสัปดาห์ของ Market Watch
 ใช้เมื่อผู้ใช้พูดว่า "ทบทวน", "พ้นสัปดาห์แล้ว", "update SL TP1 TP2", "ตลาดลงหนัก SL ใช้ไม่ได้แล้ว" หรือแอปขึ้น "Failed to fetch prices" ตอบเป็นภาษาไทย สั้น ตรงประเด็น
 
 ## ขอบเขต
-- แก้เฉพาะบล็อก `daily` ใน `data/analysis.json` (ทุกตัวในแท็บ daily ของ `watchlist.json`: GC=F, BTC-USD, IVV, QQQM, ARKK, ARKW, ARKF, DJP, SMH, DAPP, SILVER_THB_KG)
+- แก้เฉพาะบล็อก `daily` ใน `data/analysis.json` (ทุกตัวในแท็บ daily ของ `watchlist.json`: อ่านรายการจริงจาก `watchlist.json` เสมอ ณ 26 พ.ย. 2026: GC=F, BTC-USD, IVV, QQQM, DJP, SMH, DAPP, ^IXIC (NASDAQ), ^SETHD.BK (SETHD), ^TOPX (TOPIX), ^NSEI (NIFTY), ^KS11 (KOSPI), JFNAX ส่วน ARKK, ARKW, ARKF และแท่งเงิน SILVER_THB_KG ถูกถอดออกแล้ว)
 - ห้ามแตะ `weekly`, `waves`, `demo`, `asof` ระดับบนสุด และห้ามแก้ `data/prices.json`, `data/series.json`, `data/silver_thb_history.json` (บอทอัปเดตเอง)
 - Elliott Wave ไม่นับรายสัปดาห์ ทำสิ้นเดือนด้วย skill `mwt-elliott-month-end` แต่รายสัปดาห์ให้ **เช็กอ่านอย่างเดียว** ว่าราคาปิดหลุด `keyLevel` ของ `waves` ตัวไหนหรือยัง ถ้าหลุดให้เตือนผู้ใช้ว่าควรนับใหม่ (ไม่ต้องรอสิ้นเดือน)
 
@@ -23,7 +23,7 @@ description: ทบทวนรายสัปดาห์ของ Market Watch
    - TP1 = entry + 1.5 × risk (R:R 1:1.5)
    - TP2 = entry + 3 × risk (R:R 1:3)
    - ปัด 2 ทศนิยม
-5. SILVER_THB_KG: ใช้ฟังก์ชันใน `scripts/update_prices.py` (`silver_weekly_bars`, `silver_levels`, `silver_analysis_entry`, flag `--silver-analysis`) ราคาคือราคาขายออก ไม่รวม VAT ของ bowinsgroup หน่วยบาท/กก. ถ้า weekly bars < 12 ใช้โหมด provisional (risk = 6% ของราคา) ถ้า ≥ 12 ใช้ 1.5 × ATR12 จาก weekly bars ระบุโหมดใน note
+5. SILVER_THB_KG (ถอดออกจากแท็บ daily แล้ว 26 พ.ย. 2026 — ข้ามขั้นนี้ ยกเว้นผู้ใช้เอากลับมา โค้ดยังอยู่ในสคริปต์): ใช้ฟังก์ชันใน `scripts/update_prices.py` (`silver_weekly_bars`, `silver_levels`, `silver_analysis_entry`, flag `--silver-analysis`) ราคาคือราคาขายออก ไม่รวม VAT ของ bowinsgroup หน่วยบาท/กก. ถ้า weekly bars < 12 ใช้โหมด provisional (risk = 6% ของราคา) ถ้า ≥ 12 ใช้ 1.5 × ATR12 จาก weekly bars ระบุโหมดใน note
 6. เช็ก SL หลุด: เทียบ SL เดิมในไฟล์กับราคาปิดรายวันใน `series.json` ตั้งแต่รอบทบทวนก่อน ถ้ามีวันปิดต่ำกว่า SL เติมใน note: "(ราคาหลุด SL เดิมที่ X ระหว่างสัปดาห์ — ปิดต่ำกว่าครั้งแรก YYYY-MM-DD)" และสรุปให้ผู้ใช้ว่าตัวไหนหลุด
 7. note ใช้ข้อความ "ทบทวนแผนรายสัปดาห์" และคงรูปแบบ field เดิมของแต่ละ entry ทุกอย่าง
 8. เขียนไฟล์ด้วยการ splice ข้อความดิบ: แทนที่เฉพาะบล็อก `  "daily": {` ... ด้วยการนับปีกกา ห้าม `json.dump` ทั้งไฟล์ แล้วตรวจว่าส่วนอื่น (`weekly`, `waves`, `demo`, `asof`) เหมือนเดิมทุกไบต์
@@ -32,10 +32,11 @@ description: ทบทวนรายสัปดาห์ของ Market Watch
 
 ## TradingView alerts (ถ้าเครื่องมือเชื่อมต่ออยู่)
 - ถ้าเครื่องมือ TradingView ไม่ถูกโหลด/หลุด ให้บอกผู้ใช้ตรงๆ ว่าอัปเดต alert ไม่ได้รอบนี้ และให้ตารางค่าไปตั้งเอง ห้ามอ้างว่าตั้งแล้ว
-- ลบ alert เดิมของ 10 ตัวนี้ แล้วสร้างใหม่ 3 รายการต่อ ticker ความละเอียด 1D หมดอายุ +30 วัน
+- ลบ alert เดิมของตัวที่อยู่ในแท็บ daily แล้วสร้างใหม่ 3 รายการต่อ ticker ความละเอียด 1D หมดอายุ +30 วัน
 - ชื่อ: `{SHORT} SL {value} (Risk -X.X%)` (cross_down), `{SHORT} TP1 {value} (R:R 1:1.5)` และ `{SHORT} TP2 {value} (R:R 1:3)` (cross_up)
-- สัญลักษณ์: OANDA:XAUUSD, BINANCE:BTCUSDT, AMEX:IVV, NASDAQ:QQQM, CBOE:ARKK, CBOE:ARKW, CBOE:ARKF, AMEX:DJP, NASDAQ:SMH, NASDAQ:DAPP
-- SILVER_THB_KG ไม่มี symbol ใน TradingView ข้าม
+- สัญลักษณ์: OANDA:XAUUSD, BINANCE:BTCUSDT, AMEX:IVV, NASDAQ:QQQM, AMEX:DJP, NASDAQ:SMH, NASDAQ:DAPP
+- ดัชนี/กองใหม่ (^IXIC, ^SETHD.BK, ^TOPX, ^NSEI, ^KS11, JFNAX) ยังไม่เคยตั้ง alert: ค้นด้วย search-symbols และยืนยัน symbol กับผู้ใช้ก่อนตั้งครั้งแรก (เดาไว้: NASDAQ:IXIC, SET:SETHD, TSE:TOPIX, NSE:NIFTY, KRX:KOSPI, NASDAQ:JFNAX) แล้วบันทึก symbol ที่ยืนยันแล้วไว้ที่บรรทัดนี้
+- ถ้า ticker ใหม่ยังไม่มีใน `prices.json` (บอทยังไม่ดึงได้ เช่น ^SETHD.BK ไม่เคยมีข้อมูล) ห้ามเดา entry/SL/TP ให้ข้ามและแจ้งผู้ใช้
 - ตรวจด้วย list alerts ว่า active ครบ
 
 ## ส่งมอบ (push จาก sandbox ไม่ได้: 403)

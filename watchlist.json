@@ -318,24 +318,6 @@
    "cat": "equity"
   },
   {
-   "t": "ARKK",
-   "th": "ARK Innovation",
-   "en": "ARK Innovation",
-   "cat": "equity"
-  },
-  {
-   "t": "ARKW",
-   "th": "ARK Next Gen Internet",
-   "en": "ARK Internet",
-   "cat": "equity"
-  },
-  {
-   "t": "ARKF",
-   "th": "ARK Fintech",
-   "en": "ARK Fintech",
-   "cat": "equity"
-  },
-  {
    "t": "DJP",
    "th": "สินค้าโภคภัณฑ์",
    "en": "Bloomberg Commodity ETN",
@@ -354,10 +336,46 @@
    "cat": "equity"
   },
   {
-   "t": "SILVER_THB_KG",
-   "th": "แท่งเงิน 1 กก. (ขายออก)",
-   "en": "Silver Bar 1kg (THB, ask price)",
-   "cat": "commodity"
+   "t": "^IXIC",
+   "s": "NASDAQ",
+   "th": "ดัชนี Nasdaq Composite",
+   "en": "Nasdaq Composite Index",
+   "cat": "equity"
+  },
+  {
+   "t": "^SETHD.BK",
+   "s": "SETHD",
+   "th": "หุ้นปันผลสูงไทย (SETHD)",
+   "en": "SET High Dividend 30",
+   "cat": "equity"
+  },
+  {
+   "t": "^TOPX",
+   "s": "TOPIX",
+   "th": "ดัชนี TOPIX ญี่ปุ่น",
+   "en": "TOPIX (Japan)",
+   "cat": "equity"
+  },
+  {
+   "t": "^NSEI",
+   "s": "NIFTY",
+   "th": "ดัชนี Nifty 50 อินเดีย",
+   "en": "Nifty 50 (India)",
+   "cat": "equity"
+  },
+  {
+   "t": "^KS11",
+   "s": "KOSPI",
+   "th": "ดัชนี KOSPI เกาหลีใต้",
+   "en": "KOSPI (South Korea)",
+   "cat": "equity"
+  },
+  {
+   "t": "JFNAX",
+   "s": "JFNAX",
+   "th": "กองทุน JFNAX",
+   "en": "JFNAX fund",
+   "cat": "equity"
   }
  ],
  "regime": {
